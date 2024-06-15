@@ -1,0 +1,13 @@
+/*
+# !*/
+!/Effects 
+/Effects/*
+!/Effects/Blackspire
+
+!/Scripts 
+/Scripts/*
+!/Scripts/Blackspire Scripts
+
+!.gitignore
+!LICENSE
+!README.md

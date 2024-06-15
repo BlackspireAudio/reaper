@@ -1,0 +1,87 @@
+desc:MIDI Soft Channel Switcher
+tags:jsfx,midi,fx
+version: 1.0
+author: Blackspire
+changelog:
+  + initial state
+about:
+  JSFX for soft switching between midi channels to enable live instrument switching without stuck notes and switch over glitches
+  Upon receiving a channel switch command, the script send all new note on/off commands to the new channel but still send note off commands to the previous channel to prevent stuck notes.
+  After the specified delay, the all notes/sounds off commands are sent to the previous channel to ensure that no notes persist. Afterwards, no note off commands are send to the previous channel.
+  The script also allows for sending individual note off commands to the previous channel in case the VST does not respond to all notes/sounds off commands.
+
+  This allows users to trigger channel switches early to capture potential early played notes and send them to the new VST, without triggering the new notes on the previous VST.
+  Parameters
+    - Channel Switch CC Number: The CC number to switch between channels. Value 0 will disable note forwarding. Values 1-16 will switch to the corresponding channels 1-16.
+    - Prev Channel Deactivation Delay (ms): The delay in milliseconds before the final note off commands are sent to the previous channel is deactivated.
+    - Send individual Note Off Commands: If enabled, individual note off commands are sent to the previous channel in addition to the all notes/sounds off commands.
+    - Note Off Range Start: The lowest note to send note off commands to the previous channel for.
+    - Note Off Range End: The highest note to send note off commands to the previous channel for.
+
+
+slider1:channel_switch_cc=3<0,119,1>Channel Switch CC Number
+slider2:all_note_off_delay_ms=200<0,1000,1>Prev Channel Deactivation Delay (ms)
+slider3:trigger_note_off_sends=0<0,1,1{No, Yes}>Send individual Note Off Commands
+slider4:note_off_range_start=0<0,126,1>Note Off Range Start
+slider5:note_off_range_end=127<1,127,1>Note Off Range End
+
+@serialize
+active_channel=0;
+
+@init
+STATUS_CC_MSG = 0xB0;
+STATUS_NOTE_ON = $x90;
+STATUS_NOTE_OFF = $x80;
+CC_MSG_ALL_NOTES_OFF = 0x7B;
+CC_MSG_ALL_SOUND_OFF = 0x78;
+N_CHANNELS = 16;
+
+prev_active_channel=0;
+all_note_off_delay_spl=all_note_off_delay_ms/1000.0*srate;
+all_note_off_delay_counter=0;
+
+@block
+(prev_active_channel > 0 && all_note_off_delay_counter == 0)? (
+    midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_NOTES_OFF, 0);
+    midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_SOUND_OFF, 0);
+    (trigger_note_off_sends == 1)? (
+        i = 0;
+        loop (note_off_range_end-note_off_range_start,
+            midisend(0, STATUS_NOTE_OFF + prev_active_channel-1, i, 1);
+            i+=1;
+        );
+    );
+    prev_active_channel = 0;
+
+);
+all_note_off_delay_counter = max(0, all_note_off_delay_counter - samplesblock);
+
+while (
+    midirecv(offset, msg1, msg2, msg3) ? (
+
+        status = msg1 & $xF0;
+        channel = msg1 & $x0F;
+
+        (status == STATUS_NOTE_ON || status == STATUS_NOTE_OFF) ?(
+            // Redirect only note off events to the previously channel 
+            (status == STATUS_NOTE_OFF && prev_active_channel > 0) ? (
+                midisend(offset, STATUS_NOTE_OFF + prev_active_channel-1, msg2, msg3);
+            );
+            
+            // Redirect note events to the active channel 
+            (active_channel > 0)? (
+                midisend(offset, status + active_channel-1, msg2, msg3);
+            );
+        ): (// Redirect non-note events if necessary 
+            (status == STATUS_CC_MSG && msg2 == channel_switch_cc && msg3 != active_channel && msg3 <= N_CHANNELS)? (
+                prev_active_channel = active_channel;
+                active_channel = msg3;
+                all_note_off_delay_counter = all_note_off_delay_spl;
+            );
+            // forward all non-note events in their original form
+            midisend(offset, msg1, msg2, msg3);
+        );
+    );
+
+
+);
