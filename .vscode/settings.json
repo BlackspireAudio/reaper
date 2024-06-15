@@ -1,0 +1,28 @@
+{
+    "files.exclude": {
+        "AutomationItems/": true,
+        "ColorThemes/": true,
+        "Configurations/": true,
+        "Cursors/": true,
+        "Data/": true,
+        "FXChains/": true,
+        "Grooves/": true,
+        "KeyMaps/": true,
+        "LangPack/": true,
+        "MenuSets/": true,
+        "MetadataCaches/": true,
+        "MIDINoteNames/": true,
+        "MouseMaps/": true,
+        "OSC/": true,
+        "presets/": true,
+        "ProjectTemplates/": true,
+        "QueuedRenders/": true,
+        "ReaImGui/": true,
+        "ReaPack/": true,
+        "TrackTemplates/": true,
+        "UserPlugins/": true,
+        "*.ini": true,
+        "reaper-install-rev.txt": true,
+        "reaper-license.rk": true,
+    }
+}
