@@ -1,5 +1,5 @@
-desc:MIDI Soft Channel Switcher
-tags:jsfx,midi,fx
+desc: MIDI Soft Channel Switcher
+tags: jsfx,midi,fx
 version: 1.0
 author: Blackspire
 changelog:
@@ -14,16 +14,20 @@ about:
   Parameters
     - Channel Switch CC Number: The CC number to switch between channels. Value 0 will disable note forwarding. Values 1-16 will switch to the corresponding channels 1-16.
     - Prev Channel Deactivation Delay (ms): The delay in milliseconds before the final note off commands are sent to the previous channel is deactivated.
-    - Send individual Note Off Commands: If enabled, individual note off commands are sent to the previous channel in addition to the all notes/sounds off commands.
+    - Send all Note Off Command (CC123): If enabled, the all notes off command is sent to the previous channel after the deactivatoion delay.
+    - Send all Sound Off Command (CC120): If enabled, the all sounds off command is sent to the previous channel after the deactivatoion delay.
+    - Send individual Note Off Commands: If enabled, individual note off commands are sent to the previous channel after the deactivatoion delay.
     - Note Off Range Start: The lowest note to send note off commands to the previous channel for.
     - Note Off Range End: The highest note to send note off commands to the previous channel for.
 
 
 slider1:channel_switch_cc=3<0,119,1>Channel Switch CC Number
 slider2:all_note_off_delay_ms=200<0,1000,1>Prev Channel Deactivation Delay (ms)
-slider3:trigger_note_off_sends=0<0,1,1{No, Yes}>Send individual Note Off Commands
-slider4:note_off_range_start=0<0,126,1>Note Off Range Start
-slider5:note_off_range_end=127<1,127,1>Note Off Range End
+slider3:trigger_all_note_off=1<0,1,1{No, Yes}>Send all Note Off Command (CC123)
+slider4:trigger_all_sound_off=0<0,1,1{No, Yes}>Send all Sound Off Command (CC120)
+slider5:trigger_note_off_sends=0<0,1,1{No, Yes}>Send individual Note Off Commands
+slider6:note_off_range_start=0<0,126,1>Note Off Range Start
+slider7:note_off_range_end=127<1,127,1>Note Off Range End
 
 @serialize
 active_channel=0;
@@ -42,8 +46,8 @@ all_note_off_delay_counter=0;
 
 @block
 (prev_active_channel > 0 && all_note_off_delay_counter == 0)? (
-    midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_NOTES_OFF, 0);
-    midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_SOUND_OFF, 0);
+    (trigger_all_note_off == 1)? (midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_NOTES_OFF, 0););
+    (trigger_all_sound_off == 1)? (midisend(0, STATUS_CC_MSG + prev_active_channel-1, CC_MSG_ALL_SOUND_OFF, 0););
     (trigger_note_off_sends == 1)? (
         i = 0;
         loop (note_off_range_end-note_off_range_start,
