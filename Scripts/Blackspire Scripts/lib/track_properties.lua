@@ -28,7 +28,7 @@ function ToggleMuteOnTargetTrack(mouse, select, group, exclusive)
         for i = 0, reaper.CountSelectedTracks(0) - 1 do
             ToggleMuteOnTrack(reaper.GetSelectedTrack(0, i), group, i == 0 and exclusive)
         end
-    elseif mouse then -- mute track under mouse
+    elseif mouse then                                -- mute track under mouse
         if select and track then
             reaper.SetOnlyTrackSelected(track, true) --select track under mouse
         else
@@ -77,7 +77,7 @@ function ToggleSoloOnTargetTrack(mouse, select, group, exclusive, in_place)
         for i = 0, reaper.CountSelectedTracks(0) - 1 do
             ToggleSoloOnTrack(reaper.GetSelectedTrack(0, i), group, i == 0 and exclusive, in_place)
         end
-    elseif mouse then -- solo track under mouse without changing selection
+    elseif mouse then                                -- solo track under mouse without changing selection
         if select and track then
             reaper.SetOnlyTrackSelected(track, true) --select track under mouse
         else
@@ -201,8 +201,15 @@ end
 ---Afterwards propagates the state to all selected tracks of the same type (audio or instrument)
 ---@param audio_states table table of record arm, mode and monitor states for audio tracks
 ---@param instrument_states table table of record arm, mode and monitor states for instrument tracks
-function CycleTargetTrackRecMonStates(audio_states, instrument_states)
-    local track = rprw_GetTrackUnderMouseCursor() or reaper.GetSelectedTrack(0, 0)
+---@param mouse boolean true to cycle states on track under mouse (or first selected track of non under mouse), false to cycle states on first selected track
+function CycleTargetTrackRecMonStates(audio_states, instrument_states, mouse)
+    local track = nil
+    if mouse then
+        track = rprw_GetTrackUnderMouseCursor()
+    end
+    if not track then
+        track = reaper.GetSelectedTrack(0, 0)
+    end
     if track then
         local is_instrument_track = rprw_HasInstrumentFX(track)
         target_state = CycleTrackRecMonStates(track, is_instrument_track and instrument_states or audio_states)
@@ -237,5 +244,3 @@ function CycleTrackRecMonStates(track, cycle_states)
     rprw_SetTrackArmModeMonStates(track, cycle_states[1].rec_arm, cycle_states[1].rec_mode, cycle_states[1].rec_mon)
     return cycle_states[1]
 end
-
-

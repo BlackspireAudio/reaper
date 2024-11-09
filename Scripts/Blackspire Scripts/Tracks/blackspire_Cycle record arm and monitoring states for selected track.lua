@@ -8,15 +8,13 @@
 --------------------------------------------------
 -- Check https://www.reaper.fm/sdk/reascript/reascripthelp.html#GetMediaTrackInfo_Value for infos on the values
 local audio_states = {
-    [1] = { rec_arm = 0, rec_mode = 0, rec_mon = 1 }, -- unarmed
-    [2] = { rec_arm = 1, rec_mode = 0, rec_mon = 1 }, -- record input and monitor
-    [3] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 }, -- monitor only
+    [1] = { rec_arm = 1, rec_mode = 0, rec_mon = 1 }, -- record input and monitor
+    [2] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 }, -- monitor only
 }
 
 local istrument_states = {
-    [1] = { rec_arm = 0, rec_mode = 8, rec_mon = 1 }, -- unarmed
-    [2] = { rec_arm = 1, rec_mode = 8, rec_mon = 1 }, -- record midi input (touch-replace) and monitor
-    [3] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 }, -- monitor only
+    [1] = { rec_arm = 1, rec_mode = 8, rec_mon = 1 }, -- record midi input (touch-replace) and monitor
+    [2] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 }, -- monitor only
 }
 
 --------------------------------------------------
@@ -35,4 +33,4 @@ if not BSLoadLibraries(1.0, { "tracks_properties.lua", "rprw.lua" }) then return
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
-CycleTargetTrackRecMonStates(audio_states, istrument_states)
+CycleTargetTrackRecMonStates(audio_states, istrument_states, false)
