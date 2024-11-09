@@ -28,7 +28,7 @@ if not lib_path or lib_path == "" then
     return
 end
 dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, { "tracks_properties.lua", "rprw.lua" }) then return end
+if not BSLoadLibraries(1.0, { "track_properties.lua", "rprw.lua" }) then return end
 
 --------------------------------------------------
 ---------------------MAIN-------------------------

@@ -20,7 +20,7 @@ function BSLoadLibraries(version, required_libs)
             dofile(script_path .. required_libs[i])
         end
     else
-        dofile(script_path .. "tracks_properties.lua")
+        dofile(script_path .. "track_properties.lua")
         dofile(script_path .. "helper_functions.lua")
         dofile(script_path .. "rprw.lua")
         dofile(script_path .. "script_gen.lua")

@@ -4,7 +4,7 @@
 -- @about Set path to libraries used by BlackSpire scripts.
 -- @version 1.0
 -- @provides
---    tracks_properties.lua
+--    track_properties.lua
 --    helper_functions.lua
 --    rprw.lua
 --    script_gen.lua
