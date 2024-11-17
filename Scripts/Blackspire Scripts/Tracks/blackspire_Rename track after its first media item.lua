@@ -1,8 +1,18 @@
+-- @description Toggle solo on track under mouse (not-in-place, respect grouping, change selection)
+-- @version 1.0
+-- @author BlackSpire
+
+--------------------------------------------------
+--------------------PARAMS------------------------
+--------------------------------------------------
 undo_message = 'Rename track after its first media item'
+string_replacements = {
+    { ".wav", "" },
+}
 
-
-
-
+--------------------------------------------------
+------------------LOAD LIBRARIES------------------
+--------------------------------------------------
 local lib_path = reaper.GetExtState("BlackSpire_Scripts", "lib_path")
 if not lib_path or lib_path == "" then
     reaper.MB(
@@ -11,13 +21,14 @@ if not lib_path or lib_path == "" then
     return
 end
 dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, { "helper_functions.lua", "rprw.lua", "tracks_properties.lua" }) then return end
+if not BSLoadLibraries(1.0, { "helper_functions.lua", "rprw.lua", "track_properties.lua" }) then return end
 
 
-
+--------------------------------------------------
+---------------------MAIN-------------------------
+--------------------------------------------------
 reaper.PreventUIRefresh(1)
 reaper.Undo_BeginBlock()
-
 
 local track = reaper.GetSelectedTrack(0, 0)
 if not track then
@@ -32,13 +43,13 @@ else
             return
         else
             local name = reaper.GetTakeName(take)
-            name = string.gsub(name, ".wav", "")
-            name = string.gsub(name, "-M", "")
-            name = string.gsub(name, "ST", "MT")
+            for i, replacement in ipairs(string_replacements) do
+                name = string.gsub(name, replacement[1], replacement[2])
+            end
             reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
         end
     end
 end
 
-reaper.Undo_EndBlock(undo_message, 4)
+reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
 reaper.PreventUIRefresh(-1)

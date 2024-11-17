@@ -15,4 +15,4 @@ if not BSLoadLibraries(1.0, { "helper_functions.lua", "rprw.lua", "track_propert
 
 reaper.Undo_BeginBlock()
 ToggleSoloOnTrack(rprw_GetMIDIEditorActiveTakeTrack(), true, false, true)
-reaper.Undo_EndBlock(undo_message, 4)
+reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

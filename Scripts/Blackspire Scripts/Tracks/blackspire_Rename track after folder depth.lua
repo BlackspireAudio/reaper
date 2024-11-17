@@ -1,8 +1,15 @@
+-- @description Rename track after folder depth parameter
+-- @version 1.0
+-- @author BlackSpire
+
+--------------------------------------------------
+--------------------PARAMS------------------------
+--------------------------------------------------
 undo_message = 'Rename track after folder depth'
 
-
-
-
+--------------------------------------------------
+------------------LOAD LIBRARIES------------------
+--------------------------------------------------
 local lib_path = reaper.GetExtState("BlackSpire_Scripts", "lib_path")
 if not lib_path or lib_path == "" then
     reaper.MB(
@@ -11,13 +18,13 @@ if not lib_path or lib_path == "" then
     return
 end
 dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, { "helper_functions.lua", "rprw.lua", "tracks_properties.lua" }) then return end
+if not BSLoadLibraries(1.0, { "helper_functions.lua", "rprw.lua", "track_properties.lua" }) then return end
 
-
-
+--------------------------------------------------
+---------------------MAIN-------------------------
+--------------------------------------------------
 reaper.PreventUIRefresh(1)
 reaper.Undo_BeginBlock()
-
 
 local num_tracks = reaper.CountTracks(0)
 for i = 0, num_tracks - 1 do
@@ -25,5 +32,5 @@ for i = 0, num_tracks - 1 do
     reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', reaper.GetMediaTrackInfo_Value(track, "I_FOLDERDEPTH"), true)
 end
 
-reaper.Undo_EndBlock(undo_message, 4)
+reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
 reaper.PreventUIRefresh(-1)

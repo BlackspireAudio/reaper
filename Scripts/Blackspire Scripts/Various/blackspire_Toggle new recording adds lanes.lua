@@ -28,5 +28,5 @@ else
     reaper.SetToggleCommandState(sec, cmd, 0)
 end
 
-reaper.Undo_EndBlock(undo_message, 8) -- 8 = project state change
+reaper.Undo_EndBlock(undo_message, 0) -- 0 = mostly native reaper actions are used and command state changes don't seem to add undo points anyway
 reaper.RefreshToolbar2(sec, cmd)

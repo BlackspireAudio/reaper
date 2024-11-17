@@ -31,5 +31,5 @@ if not BSLoadLibraries(1.0, { "rprw.lua", "items_editing.lua" }) then return end
 reaper.PreventUIRefresh(1)
 reaper.Undo_BeginBlock()
 SplitTargetMediaItem(target, split, select, group)
-reaper.Undo_EndBlock(undo_message, 4)
+reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
 reaper.PreventUIRefresh(-1)

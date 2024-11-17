@@ -7,4 +7,4 @@ local item = reaper.GetMediaItemTake_Item(take)
 local mute = reaper.GetMediaItemInfo_Value(item, "B_MUTE")
 reaper.SetMediaItemInfo_Value(item, "B_MUTE", mute == 1 and 0 or 1)
 reaper.UpdateArrange()
-reaper.Undo_EndBlock(undo_message, 4)
+reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
