@@ -13,7 +13,6 @@ reaper.PreventUIRefresh(1)
 reaper.Undo_BeginBlock()
 
 local update_view = reaper.GetToggleCommandState(40036) == 1 -- Options: Toggle auto-scroll view when editing
-reaper.ShowConsoleMsg(reaper.GetToggleCommandState(40036))
 if not update_view then
     reaper.Main_OnCommand(reaper.NamedCommandLookup('_WOL_SAVEVIEWS5'), 0) -- SWS: Save current arrange view, slot 5
 end
