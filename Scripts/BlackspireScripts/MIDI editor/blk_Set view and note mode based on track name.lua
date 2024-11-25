@@ -10,35 +10,35 @@ local undo_message = 'Set editor and event view mode'
 local default_cycle_config = {
     [1] = {
         40449, -- rectangle
-        40042 -- piano roll
+        40042  -- piano roll
     },
     [2] = {
         40448, -- triangle
-        40043 -- named notes
+        40043  -- named notes
     }
 }
 
 -- specific configs for tracks that start with a certain string
 local named_config = {
     [1] = {
-        patterns = {"^bass"},
+        patterns = { "^bass" },
         cmd_ids = {
             40449, -- rectangle
-            40043 -- named notes
+            40043  -- named notes
         }
     },
     [2] = {
-        patterns = {"^drum"},
+        patterns = { "^drum" },
         cmd_ids = {
             40448, -- triangle
-            40043 -- named notes
+            40043  -- named notes
         }
     },
     [3] = {
-        patterns = {"piano", "keys", "synth"},
+        patterns = { "piano", "keys", "synth" },
         cmd_ids = {
             40449, -- rectangle
-            40042 -- piano roll
+            40042  -- piano roll
         }
     }
 }
@@ -46,28 +46,28 @@ local named_config = {
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
 --------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
+local lib_path = select(2, reaper.get_action_context()):match("^.+REAPER[\\/]Scripts[\\/].-[\\/]") .. "lib" .. package.config:sub(1, 1)
+local f = io.open(lib_path .. "version.lua", "r")
+if not f then
+    reaper.MB("Couldn't find BlackspireScripts library at:\n" .. lib_path .. "\nInstall it using the ReaPack browser", "Whoops!", 0)
+    return false
 end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"helper_functions.lua", "rprw.lua"}) then return end
+f:close()
+package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
+if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
+local rsw = require "reascript_wrappers"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
 reaper.Undo_BeginBlock()
-local is_new_value, filename, sec, cmd, mode, resolution, val =
-    reaper.get_action_context()
+local is_new_value, filename, sec, cmd, mode, resolution, val = reaper.get_action_context()
 local active_midi_editor = reaper.MIDIEditor_GetActive()
-local track = rprw_GetMIDIEditorActiveTakeTrack()
+local track = rsw.GetMIDIEditorActiveTakeTrack()
 local named_config_applied = false
 if track then
     local _, track_name = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME',
-                                                             "", false)
+        "", false)
     for i, v in ipairs(named_config) do
         -- match starts_with case insensitive
         for _, pattern in ipairs(v.patterns) do
@@ -96,11 +96,10 @@ if track then
             end
         end
         local next_config_index = (((current_config_index + 1) - 1) %
-                                      #default_cycle_config) + 1
+            #default_cycle_config) + 1
         for i, cmd_id in ipairs(default_cycle_config[next_config_index]) do
             reaper.MIDIEditor_OnCommand(active_midi_editor, cmd_id)
         end
-
     end
 end
 

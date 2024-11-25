@@ -11,23 +11,23 @@ local note_color_ext_state_key = "note_color"
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
 --------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
+local lib_path = select(2, reaper.get_action_context()):match("^.+REAPER[\\/]Scripts[\\/].-[\\/]") .. "lib" .. package.config:sub(1, 1)
+local f = io.open(lib_path .. "version.lua", "r")
+if not f then
+    reaper.MB("Couldn't find BlackspireScripts library at:\n" .. lib_path .. "\nInstall it using the ReaPack browser", "Whoops!", 0)
+    return false
 end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"helper_functions.lua", "rprw.lua"}) then return end
+f:close()
+package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
+if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
+local rsw = require "reascript_wrappers"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local is_new_value, filename, sec, cmd, mode, resolution, val =
-    reaper.get_action_context()
+local is_new_value, filename, sec, cmd, mode, resolution, val = reaper.get_action_context()
 local active_midi_editor = reaper.MIDIEditor_GetActive()
 if reaper.GetToggleCommandStateEx(sec, cmd) == 0 then
     local note_color = "pitch" -- default
@@ -44,7 +44,7 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 0 then
     elseif reaper.GetToggleCommandStateEx(sec, 40768) == 1 then
         note_color = "track"
     end
-    rprw_SetMidiExtState(note_color_ext_state_key, note_color, true)
+    rsw.SetMidiExtState(note_color_ext_state_key, note_color, true)
 
     reaper.MIDIEditor_OnCommand(active_midi_editor, 40768) -- Options: Color notes by track
     reaper.SetToggleCommandState(sec, cmd, 1)
@@ -52,8 +52,8 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 0 then
         reaper.MIDIEditor_OnCommand(active_midi_editor, 40901) -- Options: Avoid setting MIDI items on other tracks editable
     end
 else
-    if rprw_HasMidiExtState(note_color_ext_state_key) then
-        local note_color = rprw_GetMidiExtState(note_color_ext_state_key)
+    if rsw.HasMidiExtState(note_color_ext_state_key) then
+        local note_color = rsw.GetMidiExtState(note_color_ext_state_key)
         if note_color == "pitch" then
             reaper.MIDIEditor_OnCommand(active_midi_editor, 40740)
         elseif note_color == "velocity" then

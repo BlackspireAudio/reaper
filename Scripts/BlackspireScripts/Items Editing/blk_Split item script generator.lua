@@ -19,7 +19,7 @@ script_gen_specs = {
     },
     script_template_file = "blk_Split item template.lua",
     script_name_prefix = "blk_gen_",
-    description_template = "Split %target% at %split% (%select%, %group%)",
+    description_template = "Split %target% at %split% (%selection%, %group%)",
     params = {
         [1] = {
             name = "target",
@@ -67,7 +67,7 @@ script_gen_specs = {
             }
         },
         [3] = {
-            name = "select",
+            name = "selection",
             options = {
                 [1] = {
                     description = "retain original selection",
@@ -132,17 +132,18 @@ script_gen_specs = {
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
 --------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
+local lib_path = select(2, reaper.get_action_context()):match("^.+REAPER[\\/]Scripts[\\/].-[\\/]") .. "lib" .. package.config:sub(1, 1)
+local f = io.open(lib_path .. "version.lua", "r")
+if not f then
+    reaper.MB("Couldn't find BlackspireScripts library at:\n" .. lib_path .. "\nInstall it using the ReaPack browser", "Whoops!", 0)
+    return false
 end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"script_gen.lua"}) then return end
+f:close()
+package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
+if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
+local sgm = require "script_generator"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
-OpenScriptVariationsGeneratorGUI(script_gen_specs)
+sgm.OpenScriptVariationsGeneratorGUI(script_gen_specs)

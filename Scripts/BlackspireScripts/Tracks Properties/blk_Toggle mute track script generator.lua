@@ -1,4 +1,4 @@
--- @description Enables the generation of Toggle track solo script variations using the Lokasenna_GUI v2 library
+-- @description Enables the generation of "Toggle track mute" script variations using the Lokasenna_GUI v2 library
 -- @version 1.0
 -- @author Blackspire
 -- @changelog
@@ -6,18 +6,18 @@
 --------------------PARAMS------------------------
 --------------------------------------------------
 script_gen_specs = {
-    gui_width = 1200, -- optional, default is 1000
+    gui_width = 1000, -- optional, default is 1000
     gui_chbl_h = 70,
-    gui_title = '"Toggle solo track" script generator',
+    gui_title = '"Toggle mute track" script generator',
     author = "Blackspire",
     version = "1.0",
     script_template_folder = {
         reaper.GetResourcePath(), "Scripts", "BlackspireScripts",
-        "Track Properties"
+        "Tracks Properties"
     },
-    script_template_file = "blk_Toggle solo track template.lua",
+    script_template_file = "blk_Toggle mute track template.lua",
     script_name_prefix = "blk_gen_",
-    description_template = "Toggle solo on %mouse% (%in_place%, %group%, %select%%exclusive%)",
+    description_template = "Toggle mute on %mouse% (%group%, %selection%%exclusive%)",
     params = {
         [1] = {
             name = "mouse",
@@ -35,7 +35,7 @@ script_gen_specs = {
             }
         },
         [2] = {
-            name = "select",
+            name = "selection",
             options = {
                 [1] = {
                     description = "select target track",
@@ -50,21 +50,6 @@ script_gen_specs = {
             }
         },
         [3] = {
-            name = "in_place",
-            options = {
-                [1] = {
-                    description = "in-place",
-                    script_name_modifier = "in-place",
-                    value = true
-                },
-                [2] = {
-                    description = "not-in-place",
-                    script_name_modifier = "not-in-place",
-                    value = false
-                }
-            }
-        },
-        [4] = {
             name = "group",
             options = {
                 [1] = {
@@ -79,16 +64,16 @@ script_gen_specs = {
                 }
             }
         },
-        [5] = {
+        [4] = {
             name = "exclusive",
             options = {
                 [1] = {
-                    description = "exclusive solo",
+                    description = "exclusive mute",
                     script_name_modifier = ", exclusive",
                     value = true
                 },
                 [2] = {
-                    description = "normal solo",
+                    description = "normal mute",
                     script_name_modifier = "",
                     value = false
                 }
@@ -100,17 +85,18 @@ script_gen_specs = {
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
 --------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
+local lib_path = select(2, reaper.get_action_context()):match("^.+REAPER[\\/]Scripts[\\/].-[\\/]") .. "lib" .. package.config:sub(1, 1)
+local f = io.open(lib_path .. "version.lua", "r")
+if not f then
+    reaper.MB("Couldn't find BlackspireScripts library at:\n" .. lib_path .. "\nInstall it using the ReaPack browser", "Whoops!", 0)
+    return false
 end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"script_gen.lua"}) then return end
+f:close()
+package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
+if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
+local sgm = require "script_generator"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
-OpenScriptVariationsGeneratorGUI(script_gen_specs)
+sgm.OpenScriptVariationsGeneratorGUI(script_gen_specs)

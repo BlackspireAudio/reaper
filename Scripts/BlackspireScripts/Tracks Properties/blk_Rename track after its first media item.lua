@@ -5,22 +5,7 @@
 --------------------PARAMS------------------------
 --------------------------------------------------
 undo_message = 'Rename track after its first media item'
-string_replacements = {{".wav", ""}}
-
---------------------------------------------------
-------------------LOAD LIBRARIES------------------
---------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
-end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {
-    "helper_functions.lua", "rprw.lua", "track_properties.lua"
-}) then return end
+string_replacements = { { ".wav", "" } }
 
 --------------------------------------------------
 ---------------------MAIN-------------------------

@@ -5,21 +5,22 @@
 --------------------------------------------------
 --------------------PARAMS------------------------
 --------------------------------------------------
-local loop_end_grace_period = 0.2 -- adjust this value to reduce the time required for the first loop to be accepted as complete
+local loop_end_grace_period = 0.2      -- adjust this value to reduce the time required for the first loop to be accepted as complete
 local terminate_on_record_stop = false -- set to true to stop the script when recording stops
 
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
 --------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
+local lib_path = select(2, reaper.get_action_context()):match("^.+REAPER[\\/]Scripts[\\/].-[\\/]") .. "lib" .. package.config:sub(1, 1)
+local f = io.open(lib_path .. "version.lua", "r")
+if not f then
+    reaper.MB("Couldn't find BlackspireScripts library at:\n" .. lib_path .. "\nInstall it using the ReaPack browser", "Whoops!", 0)
+    return false
 end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"helper_functions.lua", "rprw.lua"}) then return end
+f:close()
+package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
+if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
+local rsw = require "reascript_wrappers"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
@@ -38,25 +39,21 @@ function loop()
             -- recording
             current_play_position = reaper.GetPlayPosition()
             if current_play_position < previous_play_position then
-                if rprw_GetTransportExtState(recording_restarted_ext_state_key) ==
+                if rsw.GetTransportExtState(recording_restarted_ext_state_key) ==
                     "true" then
                     -- recording has been restarted, reset loop iteration count
-                    rprw_SetTransportExtState(recording_restarted_ext_state_key,
-                                              "false")
-                    rprw_SetTransportExtState(loop_iteration_ext_state_key, 0)
+                    rsw.SetTransportExtState(recording_restarted_ext_state_key,
+                        "false")
+                    rsw.SetTransportExtState(loop_iteration_ext_state_key, 0)
                 else
                     -- increment loop iteration count
-                    rprw_SetTransportExtState(loop_iteration_ext_state_key,
-                                              (tonumber(
-                                                  rprw_GetTransportExtState(
-                                                      loop_iteration_ext_state_key)) or
-                                                  0) + 1)
+                    rsw.SetTransportExtState(loop_iteration_ext_state_key, (tonumber(rsw.GetTransportExtState(loop_iteration_ext_state_key)) or 0) + 1)
                 end
             end
             previous_play_position = current_play_position
         elseif previous_playstate & 4 == 4 and current_playstate & 4 == 0 then
             -- only executed once in transition from recording to not recording
-            rprw_SetTransportExtState(loop_iteration_ext_state_key, 0)
+            rsw.SetTransportExtState(loop_iteration_ext_state_key, 0)
             current_play_position = 0
             previous_play_position = 0
         end
@@ -74,13 +71,13 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 1 then
     -- set action options to 8 to turn off toggle state
     reaper.set_action_options(8)
     -- clean up ext states
-    rprw_DeleteTransportExtState(loop_iteration_ext_state_key)
-    rprw_DeleteTransportExtState(recording_restarted_ext_state_key)
+    rsw.DeleteTransportExtState(loop_iteration_ext_state_key)
+    rsw.DeleteTransportExtState(recording_restarted_ext_state_key)
 else
     -- set action toggle state on (4) cause rerun of action to terminate active instance (1) and restart (2)
     -- this allows the script clean up and set the toggle state after the instance is terminated
     reaper.set_action_options(1 | 2 | 4)
     -- create ext state to allow the restart action to communicate with this script
-    rprw_SetTransportExtState(recording_restarted_ext_state_key, "false")
+    rsw.SetTransportExtState(recording_restarted_ext_state_key, "false")
     loop()
 end

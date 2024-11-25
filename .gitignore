@@ -15,5 +15,6 @@ blk_gen*
 
 
 !.gitignore
+!.editorconfig
 !LICENSE
 !README.md

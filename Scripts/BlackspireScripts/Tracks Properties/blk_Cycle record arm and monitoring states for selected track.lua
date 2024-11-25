@@ -1,12 +1,20 @@
--- @description Toggle solo on active midi take track
+-- @description Cycle record arm and monitoring states for track under mouse
 -- @version 1.0
 -- @author Blackspire
 -- @changelog
 --------------------------------------------------
 --------------------PARAMS------------------------
 --------------------------------------------------
-undo_message = 'Toggle solo on active midi take track'
+-- Check https://www.reaper.fm/sdk/reascript/reascripthelp.html#GetMediaTrackInfo_Value for infos on the values
+local audio_states = {
+    [1] = { rec_arm = 1, rec_mode = 0, rec_mon = 1 }, -- record input and monitor
+    [2] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 } -- monitor only
+}
 
+local istrument_states = {
+    [1] = { rec_arm = 1, rec_mode = 8, rec_mon = 1 }, -- record midi input (touch-replace) and monitor
+    [2] = { rec_arm = 1, rec_mode = 2, rec_mon = 1 } -- monitor only
+}
 
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
@@ -20,12 +28,9 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrappers"
 local tm = require "tracks"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
-reaper.Undo_BeginBlock()
-tm.ToggleSoloOnTrack(rsw.GetMIDIEditorActiveTakeTrack(), true, false, true)
-reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
+tm.CycleTargetTrackRecMonStates(audio_states, istrument_states, false)

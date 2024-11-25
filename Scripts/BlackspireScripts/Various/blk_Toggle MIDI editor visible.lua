@@ -1,18 +1,6 @@
 -- @description Toggle new recording adds lanes
 -- @version 1.0
 -- @author Blackspire
---------------------------------------------------
-------------------LOAD LIBRARIES------------------
---------------------------------------------------
-local lib_path = reaper.GetExtState("blackspire", "lib_path")
-if not lib_path or lib_path == "" then
-    reaper.MB(
-        "Couldn't load the BlackspireScripts library. Please run 'blk_Set library path.lua' in the BlackspireScripts.",
-        "Whoops!", 0)
-    return
-end
-dofile(lib_path .. "core.lua")
-if not BSLoadLibraries(1.0, {"helper_functions.lua", "rprw.lua"}) then return end
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
@@ -27,6 +15,7 @@ function IsChildFocused(hwnd, fcw)
         end
     end
 end
+
 reaper.PreventUIRefresh(1)
 
 local midi_hwnd = reaper.MIDIEditor_GetActive()
@@ -59,7 +48,7 @@ else
                 local media_items = reaper.CountTrackMediaItems(selected_track)
                 for i = 0, media_items - 1 do
                     local media_item = reaper.GetTrackMediaItem(selected_track,
-                                                                i)
+                        i)
                     local take = reaper.GetActiveTake(media_item)
                     if reaper.TakeIsMIDI(take) then
                         reaper.SetMediaItemSelected(media_item, true)
@@ -83,4 +72,3 @@ else
     end
 end
 reaper.PreventUIRefresh(-1)
-

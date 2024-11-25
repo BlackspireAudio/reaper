@@ -59,7 +59,10 @@
 ----------------------------------------------------------------------------------------------------
 -------------------------------------SCRIPT GENERATOR SPECS EXAMPLE---------------------------------
 ----------------------------------------------------------------------------------------------------
-function TryLoadGuiLibs(libs)
+
+local sgm = {} -- script generator module
+
+function sgm.TryLoadGuiLibs(libs)
     local lib_path = reaper.GetExtState("Lokasenna_GUI", "lib_path_v2")
     if not lib_path or lib_path == "" then
         reaper.MB(
@@ -76,11 +79,13 @@ end
 
 ---Dynamically create a Lokasenna_GUI to select enabled options for the given script variation parameters
 ---@param script_gen_specs any table holding all relevant gui and script generation parameters (refer to the top of the file for an example)
-function OpenScriptVariationsGeneratorGUI(script_gen_specs)
-    if not TryLoadGuiLibs({
-        "Classes/Class - Button.lua", "Classes/Class - Options.lua",
-        "Classes/Class - Label.lua"
-    }) then return end
+function sgm.OpenScriptVariationsGeneratorGUI(script_gen_specs)
+    if not sgm.TryLoadGuiLibs({
+            "Classes/Class - Button.lua", "Classes/Class - Options.lua",
+            "Classes/Class - Label.lua"
+        }) then
+        return
+    end
 
     GUI.name = "Script Variation Generator"
     GUI.anchor, GUI.corner = "mouse", "C"
@@ -95,7 +100,7 @@ function OpenScriptVariationsGeneratorGUI(script_gen_specs)
     h_lbl = 20
 
     w_chbl = script_gen_specs.gui_chbl_w or (GUI.w - 2 * w_spacer) /
-                 #script_gen_specs.params - w_spacer
+        #script_gen_specs.params - w_spacer
     h_chbl = script_gen_specs.gui_chbl_h or 70
 
     y = h_spacer
@@ -140,7 +145,7 @@ function OpenScriptVariationsGeneratorGUI(script_gen_specs)
         w = 150,
         h = 32,
         caption = "Select All",
-        func = function() SelectAllGUIOptions(script_gen_specs) end
+        func = function() sgm.SelectAllGUIOptions(script_gen_specs) end
     }
 
     gui_elements.btn_generate_all_combinations = {
@@ -152,10 +157,10 @@ function OpenScriptVariationsGeneratorGUI(script_gen_specs)
         h = 32,
         caption = "Generate from selection",
         func = function()
-            local enabled_options = TryGetGUISelections(script_gen_specs)
+            local enabled_options = sgm.TryGetGUISelections(script_gen_specs)
             if enabled_options then
-                GenerateSelectedScriptVariations(script_gen_specs,
-                                                 enabled_options)
+                sgm.GenerateSelectedScriptVariations(script_gen_specs,
+                    enabled_options)
             end
         end
     }
@@ -166,7 +171,7 @@ function OpenScriptVariationsGeneratorGUI(script_gen_specs)
 end
 
 ---Checks all check boxes in the GUI
-function SelectAllGUIOptions(script_gen_specs)
+function sgm.SelectAllGUIOptions(script_gen_specs)
     for i, param in ipairs(script_gen_specs.params) do
         values = {}
         for j, option in ipairs(param.options) do values[j] = true end
@@ -177,7 +182,7 @@ end
 ---Tries to get all enabled options from the GUI
 ---@param script_gen_specs table table holding all relevant gui and script generation parameters (refer to the top of the file for an example)
 ---@return table enabled_options 2D table holding all enabled options per script variation parameter if at leas one option is selected for each parameter, false otherwise
-function TryGetGUISelections(script_gen_specs)
+function sgm.TryGetGUISelections(script_gen_specs)
     local enabled_options = {}
     for param_index, param in ipairs(script_gen_specs.params) do
         enabled_options[param_index] = {}
@@ -190,7 +195,7 @@ function TryGetGUISelections(script_gen_specs)
         end
         if j == 1 then
             reaper.MB("Please select at least one option for " .. param.name,
-                      "Whoops!", 0)
+                "Whoops!", 0)
             return false
         end
     end
@@ -200,23 +205,23 @@ end
 ---Generate all possible script variations based on the selected options
 ---@param script_gen_specs table table holding all relevant gui and script generation parameters (refer to the top of the file for an example)
 ---@param enabled_options table 2D table holding all enabled options per script variation parameter
-function GenerateSelectedScriptVariations(script_gen_specs, enabled_options)
-    local all_combinations = GenerateCombinations(enabled_options)
+function sgm.GenerateSelectedScriptVariations(script_gen_specs, enabled_options)
+    local all_combinations = sgm.GenerateCombinations(enabled_options)
     local script_names = {}
     local script_paths = {}
     for i, selected_option_ids in ipairs(all_combinations) do
         script_names[i], script_paths[i] =
-            TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
+            sgm.TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
         if not script_names[i] then return end
     end
     local loaded = true
     for i = 1, #script_paths - 1 do
         loaded =
             reaper.AddRemoveReaScript(true, 0, script_paths[i], false) > 0 and
-                loaded
+            loaded
     end
     loaded = reaper.AddRemoveReaScript(true, 0, script_paths[#script_paths],
-                                       true) > 0 and loaded
+        true) > 0 and loaded
 
     if not loaded then
         reaper.MB(
@@ -225,26 +230,26 @@ function GenerateSelectedScriptVariations(script_gen_specs, enabled_options)
     end
 
     reaper.MB("Successfully created " .. (loaded and "and loaded" or "") ..
-                  " the scripts:\n\n" .. table.concat(script_names, "\n") ..
-                  "\n\nat " ..
-                  table.concat(script_gen_specs.script_template_folder,
-                               package.config:sub(1, 1)), "Noice!", 0)
+        " the scripts:\n\n" .. table.concat(script_names, "\n") ..
+        "\n\nat " ..
+        table.concat(script_gen_specs.script_template_folder,
+            package.config:sub(1, 1)), "Noice!", 0)
 end
 
 ---Generate all possible combinations of enabled options
-function GenerateCombinations(options, depth, branch)
+function sgm.GenerateCombinations(options, depth, branch)
     depth = depth or 1
     branch = branch or {}
     local result = {}
 
     if depth > #options then
-        return {branch}
+        return { branch }
     else
         for i = 1, #options[depth] do
-            local newBranch = {table.unpack(branch)}
+            local newBranch = { table.unpack(branch) }
             newBranch[depth] = options[depth][i]
             local subResult =
-                GenerateCombinations(options, depth + 1, newBranch)
+                sgm.GenerateCombinations(options, depth + 1, newBranch)
             for _, v in ipairs(subResult) do table.insert(result, v) end
         end
     end
@@ -256,15 +261,15 @@ end
 ---@param script_gen_specs table table holding all relevant gui and script generation parameters (refer to the top of the file for an example)
 ---@param selected_option_ids table table holding all selected option ids of a script variation
 ---@return boolean success true if the script was successfully generated, false otherwise
-function TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
+function sgm.TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
     local os_sep = package.config:sub(1, 1)
     local description_template = script_gen_specs.description_template
     local script_name = script_gen_specs.script_name_template or
-                            "%script_name_prefix%%description%.lua"
+        "%script_name_prefix%%description%.lua"
 
     local script_content = ""
     local script_folder = table.concat(script_gen_specs.script_template_folder,
-                                       os_sep)
+        os_sep)
     local script_template_file_path = table.concat({
         script_folder, script_gen_specs.script_template_file
     }, os_sep)
@@ -276,27 +281,27 @@ function TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
             local param = script_gen_specs.params[i]
             local option = param.options[selected_option_id]
             description_template = description_template:gsub(
-                                       "%%" .. param.name .. "%%",
-                                       option.script_name_modifier)
+                "%%" .. param.name .. "%%",
+                option.script_name_modifier)
             script_content = script_content:gsub("%%" .. param.name .. "%%",
-                                                 tostring(option.value))
+                tostring(option.value))
         end
 
         script_content = script_content:gsub("%%description%%",
-                                             description_template)
+            description_template)
         script_name = script_name:gsub("%%description%%", description_template)
         script_content = script_content:gsub("%%author%%",
-                                             script_gen_specs.author)
+            script_gen_specs.author)
         script_name = script_name:gsub("%%script_name_prefix%%",
-                                       script_gen_specs.script_name_prefix)
+            script_gen_specs.script_name_prefix)
         script_content = script_content:gsub("%%version%%",
-                                             script_gen_specs.version)
+            script_gen_specs.version)
     else
         reaper.MB("Couldn't open script template file " ..
-                      script_template_file_path, "Whoops!", 0)
+            script_template_file_path, "Whoops!", 0)
         return false
     end
-    local script_file_path = table.concat({script_folder, script_name}, os_sep)
+    local script_file_path = table.concat({ script_folder, script_name }, os_sep)
     local script_file = io.open(script_file_path, "w")
     if script_file then
         script_file:write(script_content)
@@ -307,3 +312,6 @@ function TryGenerateScriptVariation(script_gen_specs, selected_option_ids)
     end
     return script_name, script_file_path
 end
+
+
+return sgm

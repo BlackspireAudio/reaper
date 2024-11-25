@@ -1,3 +1,7 @@
+local rsw = require 'reascript_wrappers'
+
+local trm = {} -- transport module
+
 -- @description holds transport manipulation functions
 -- @author Blackspire
 -- @noindex
@@ -7,7 +11,7 @@
 ---@param record boolean true to restart recording, false to restart playback
 ---@param force_pre_roll boolean Default: false, true to force pre-roll on, false to ignore pre-roll state
 ---@param save_recorded_media int Default: 2, 0 to delete all recorded media, 1 to save all recorded media, 2 to prompt to select which recorded media to save if activated in Preferences -> Media -> Recording
-function RestartPlayRecord(record, force_pre_roll, save_recorded_media,
+function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media,
                            loop_end_grace_period)
     local force_pre_roll = force_pre_roll or false
     local save_recorded_media = save_recorded_media or 2
@@ -26,8 +30,8 @@ function RestartPlayRecord(record, force_pre_roll, save_recorded_media,
     local loop_iteration_ext_state_key = "current_loop_iteration"
     local recording_restarted_ext_state_key = "recording_restarted"
     local current_loop_iteration = 0
-    if rprw_HasTransportExtState(loop_iteration_ext_state_key) and
-        tonumber(rprw_GetTransportExtState(loop_iteration_ext_state_key)) >= 1 then
+    if rsw.HasTransportExtState(loop_iteration_ext_state_key) and
+        tonumber(rsw.GetTransportExtState(loop_iteration_ext_state_key)) >= 1 then
         save_recorded_media = 1
     end
 
@@ -50,9 +54,9 @@ function RestartPlayRecord(record, force_pre_roll, save_recorded_media,
         reaper.Main_OnCommand(toggle_pre_roll_action_id, 0) -- Toggle playback pre-roll state
     end
 
-    if rprw_HasTransportExtState(recording_restarted_ext_state_key) then
+    if rsw.HasTransportExtState(recording_restarted_ext_state_key) then
         -- if loop iteration moniroting is active, signal that the recording has been restarted and this playposition reset should not count as a loop
-        rprw_SetTransportExtState(recording_restarted_ext_state_key, "true")
+        rsw.SetTransportExtState(recording_restarted_ext_state_key, "true")
     end
 
     reaper.Main_OnCommand(stop_action_id, 0)
@@ -63,3 +67,5 @@ function RestartPlayRecord(record, force_pre_roll, save_recorded_media,
         reaper.Main_OnCommand(toggle_pre_roll_action_id, 0) -- Toggle playback pre-roll state
     end
 end
+
+return trm
