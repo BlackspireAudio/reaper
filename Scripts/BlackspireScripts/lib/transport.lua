@@ -1,4 +1,5 @@
 local rsw = require 'reascript_wrappers'
+local utils = require 'utils'
 
 local trm = {} -- transport module
 
@@ -10,15 +11,15 @@ local trm = {} -- transport module
 ---Based on my tests this an issue with reaper as the same bug can be reproduced with native record and stop actions
 ---@param record boolean true to restart recording, false to restart playback
 ---@param force_pre_roll boolean Default: false, true to force pre-roll on, false to ignore pre-roll state
----@param save_recorded_media int Default: 2, 0 to delete all recorded media, 1 to save all recorded media, 2 to prompt to select which recorded media to save if activated in Preferences -> Media -> Recording
-function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media,
-                           loop_end_grace_period)
+---@param save_recorded_media integer Default: 2, 0 to delete all recorded media, 1 to save all recorded media, 2 to prompt to select which recorded media to save if activated in Preferences -> Media -> Recording
+function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media, loop_end_grace_period)
     local force_pre_roll = force_pre_roll or false
     local save_recorded_media = save_recorded_media or 2
+    local actual_restart = reaper.GetPlayState() & 4 == 4      -- only a restart if recording is active
 
     local loop_end_grace_period = loop_end_grace_period or 0.1 -- todo add grace period param to script generator
     local loop_start, loop_end = reaper.GetSet_LoopTimeRange(false, false, 0, 0,
-                                                             false)
+        false)
     local play_position = reaper.GetPlayPosition()
     local loop_end_diff = loop_end - play_position
     local loop_start_diff = play_position - loop_start
@@ -30,8 +31,7 @@ function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media,
     local loop_iteration_ext_state_key = "current_loop_iteration"
     local recording_restarted_ext_state_key = "recording_restarted"
     local current_loop_iteration = 0
-    if rsw.HasTransportExtState(loop_iteration_ext_state_key) and
-        tonumber(rsw.GetTransportExtState(loop_iteration_ext_state_key)) >= 1 then
+    if rsw.HasExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) and tonumber(rsw.GetExtStateInt(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) or 0) >= 1 then
         save_recorded_media = 1
     end
 
@@ -43,20 +43,20 @@ function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media,
     elseif save_recorded_media == 0 then
         stop_action_id = 40668 -- Transport: Stop (DELETE all recorded media)
     else
-        stop_action_id = 1016 -- Transport: Stop (prompt to select which recorded media to save if activated in Preferences -> Media -> Recording)
+        stop_action_id = 1016  -- Transport: Stop (prompt to select which recorded media to save if activated in Preferences -> Media -> Recording)
     end
 
     -- if force_pre_roll is active and pre-roll is off, turn it on before restarting
     local toggle_pre_roll = force_pre_roll and
-                                reaper.GetToggleCommandState(
-                                    toggle_pre_roll_action_id) == 0
+        reaper.GetToggleCommandState(
+            toggle_pre_roll_action_id) == 0
     if toggle_pre_roll then
         reaper.Main_OnCommand(toggle_pre_roll_action_id, 0) -- Toggle playback pre-roll state
     end
 
-    if rsw.HasTransportExtState(recording_restarted_ext_state_key) then
-        -- if loop iteration moniroting is active, signal that the recording has been restarted and this playposition reset should not count as a loop
-        rsw.SetTransportExtState(recording_restarted_ext_state_key, "true")
+    if actual_restart and rsw.HasExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key) then
+        -- if loop iteration monitoring is active, signal that the recording has been restarted and this playposition reset should not count as a loop
+        rsw.SetExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, true)
     end
 
     reaper.Main_OnCommand(stop_action_id, 0)

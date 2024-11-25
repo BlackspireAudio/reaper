@@ -1,11 +1,11 @@
 local utils = require 'utils'
 
-local rprw = {}
+local rsw = {}
 
 -- @description holds wrapper functions for reaper API functions
 -- @author Blackspire
 -- @noindex
-function rprw.GetTrackUnderMouseCursor()
+function rsw.GetTrackUnderMouseCursor()
     local x, y = reaper.GetMousePosition()
     local track, info = reaper.GetTrackFromPoint(x, y)
     return track
@@ -15,7 +15,7 @@ end
 ---@param exclude_tracks table table of tracks to exclude from the selection
 ---@param project int optional project index
 ---@return table selected_tracks table of selected tracks excluding tracks in the exclude_tracks table
-function rprw.GetSelectedTracks(exclude_tracks, project)
+function rsw.GetSelectedTracks(exclude_tracks, project)
     project = project or 0
     local exclude_track_numbers = {}
     for i = 1, #exclude_tracks do
@@ -42,7 +42,7 @@ end
 ---@param track MediaTrack track to get child tracks from
 ---@param inclusive boolean true to include the provided track in the returned table
 ---@return table child_tracks table of child tracks or empty table if track is not a folder track
-function rprw.GetChildTracks(track, inclusive)
+function rsw.GetChildTracks(track, inclusive)
     local child_tracks = {}
     if inclusive then child_tracks[#child_tracks + 1] = track end
     if reaper.GetMediaTrackInfo_Value(track, "I_FOLDERDEPTH") == 1 then
@@ -76,7 +76,7 @@ end
 ---Get all selected items
 ---@param project int optional project index
 ---@return table selected_items table of selected items
-function rprw.GetSelectedItems(project)
+function rsw.GetSelectedItems(project)
     project = project or 0
     local selected_items = {}
     for i = reaper.CountSelectedMediaItems(project) - 1, 0, -1 do
@@ -85,13 +85,13 @@ function rprw.GetSelectedItems(project)
     return selected_items
 end
 
-function rprw.SelectTracks(tracks)
+function rsw.SelectTracks(tracks)
     for i = 1, #tracks do
         if tracks[i] then reaper.SetTrackSelected(tracks[i], true) end
     end
 end
 
-function rprw.SelectItems(items)
+function rsw.SelectItems(items)
     for i = 1, #items do reaper.SetMediaItemSelected(items[i], true) end
 end
 
@@ -99,7 +99,7 @@ end
 ---@param track MediaTrack track to set mute state on
 ---@param mute boolean true to mute track, false to unmute
 ---@param group any false to ignore track grouping
-function rprw.SetTrackUIMute(track, mute, group)
+function rsw.SetTrackUIMute(track, mute, group)
     reaper.SetTrackUIMute(track, utils.BoolInt(mute), group and 0 or 1)
 end
 
@@ -108,7 +108,7 @@ end
 ---@param solo boolean true to solo track, false to unsolo
 ---@param in_place boolean true to solo in-place (respect routing), false to solo not-in-place (ignore routing)
 ---@param group boolean false to ignore track grouping
-function rprw.SetTrackUISolo(track, solo, in_place, group)
+function rsw.SetTrackUISolo(track, solo, in_place, group)
     local i_solo = 0 -- unsolo track
     if solo then
         if in_place then
@@ -120,15 +120,15 @@ function rprw.SetTrackUISolo(track, solo, in_place, group)
     reaper.SetTrackUISolo(track, i_solo, group and 0 or 1)
 end
 
-function rprw.UnmuteAllTracks() reaper.Main_OnCommand(40339, 0) end
+function rsw.UnmuteAllTracks() reaper.Main_OnCommand(40339, 0) end
 
-function rprw.UnsoloAllTracks() reaper.Main_OnCommand(40340, 0) end
+function rsw.UnsoloAllTracks() reaper.Main_OnCommand(40340, 0) end
 
-function rprw.SelectTrackUnterMouse() reaper.Main_OnCommand(41110, 0) end
+function rsw.SelectTrackUnterMouse() reaper.Main_OnCommand(41110, 0) end
 
-function rprw.GroupSelectedItems() reaper.Main_OnCommand(40032, 0) end
+function rsw.GroupSelectedItems() reaper.Main_OnCommand(40032, 0) end
 
-function rprw.GetPositionUnderMouseCursor()
+function rsw.GetPositionUnderMouseCursor()
     reaper.BR_GetMouseCursorContext()
     return reaper.BR_GetMouseCursorContext_Position()
 end
@@ -137,7 +137,7 @@ end
 ---@param slot_id int 1-indexed slot number from the SWS extension (1-16)
 ---@param selected boolean true to save/restore only selected tracks, false to save/restore all tracks
 ---@param store boolean true to save current state, false to restore saved state
-function rprw.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, store)
+function rsw.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, store)
     local command_name_fragments = { "_BR" }
     table.insert(command_name_fragments, store and "_SAVE" or "_RESTORE")
     table.insert(command_name_fragments, "_SOLO_MUTE")
@@ -155,7 +155,7 @@ end
 ---@return int rec_arm record arm state
 ---@return int rec_mode record mode state
 ---@return int rec_mon monitor state
-function rprw.GetTrackArmModeMonStates(track)
+function rsw.GetTrackArmModeMonStates(track)
     local rec_arm = reaper.GetMediaTrackInfo_Value(track, "I_RECARM")
     local rec_mode = reaper.GetMediaTrackInfo_Value(track, "I_RECMODE")
     local rec_mon = reaper.GetMediaTrackInfo_Value(track, "I_RECMON")
@@ -168,40 +168,40 @@ end
 ---@param rec_arm int record arm state
 ---@param rec_mode int record mode state
 ---@param rec_mon int monitor state
-function rprw.SetTrackArmModeMonStates(track, rec_arm, rec_mode, rec_mon)
+function rsw.SetTrackArmModeMonStates(track, rec_arm, rec_mode, rec_mon)
     reaper.SetMediaTrackInfo_Value(track, "I_RECARM", rec_arm)
     reaper.SetMediaTrackInfo_Value(track, "I_RECMODE", rec_mode)
     reaper.SetMediaTrackInfo_Value(track, "I_RECMON", rec_mon)
-    if rprw.HasInstrumentFX(track) and
+    if rsw.HasInstrumentFX(track) and
         reaper.GetMediaTrackInfo_Value(track, "I_RECINPUT") < 4096 then
         -- if track has an instrument plugin and input is set to audio, set input to "MIDI: All MIDI Inputs and Channels"
         reaper.SetMediaTrackInfo_Value(track, "I_RECINPUT", 6112)
     end
 end
 
-function rprw.HasInstrumentFX(track)
+function rsw.HasInstrumentFX(track)
     return reaper.TrackFX_GetInstrument(track) >= 0
 end
 
-function rprw.GetMIDIEditorActiveTake()
+function rsw.GetMIDIEditorActiveTake()
     local midi_editor = reaper.MIDIEditor_GetActive()
     if not midi_editor then return false end
     return reaper.MIDIEditor_GetTake(midi_editor)
 end
 
-function rprw.GetMIDIEditorActiveTakeItem()
-    local take = rprw.GetMIDIEditorActiveTake()
+function rsw.GetMIDIEditorActiveTakeItem()
+    local take = rsw.GetMIDIEditorActiveTake()
     if not take then return false end
     return reaper.GetMediaItemTake_Item(take)
 end
 
-function rprw.GetMIDIEditorActiveTakeTrack()
-    local take = rprw.GetMIDIEditorActiveTake()
+function rsw.GetMIDIEditorActiveTakeTrack()
+    local take = rsw.GetMIDIEditorActiveTake()
     if not take then return false end
     return reaper.GetMediaItemTake_Track(take)
 end
 
-function rprw.GetMediaItemUnderMouseCursor()
+function rsw.GetMediaItemUnderMouseCursor()
     local item, pos = reaper.BR_ItemAtMouseCursor()
     local take
     if not item then
@@ -211,13 +211,13 @@ function rprw.GetMediaItemUnderMouseCursor()
     return item, pos
 end
 
-function rprw.SelectAllItemsInSameGroupsAsCurrentlySelectedItems()
+function rsw.SelectAllItemsInSameGroupsAsCurrentlySelectedItems()
     reaper.Main_OnCommand(40034, 0)
 end
 
-function rprw.UnselectAllMediaItems() reaper.Main_OnCommand(40289, 0) end
+function rsw.UnselectAllMediaItems() reaper.Main_OnCommand(40289, 0) end
 
-function rprw.DeleteTrack(track)
+function rsw.DeleteTrack(track)
     local track_folder_depth = reaper.GetMediaTrackInfo_Value(track,
         "I_FOLDERDEPTH")
 
@@ -251,64 +251,53 @@ function rprw.DeleteTrack(track)
     reaper.DeleteTrack(track)
 end
 
-function rprw.SetExtState(section, key, value, persist)
-    reaper.SetExtState(utils.GetExtStateSectionName(section), key, value,
-        persist or false)
+---Set the extended state value for a specific section and key. persist=true means the value should be stored and reloaded the next time REAPER is opened.
+---@param section string
+---@param key string
+---@param value any
+---@param persist? boolean
+function rsw.SetExtState(section, key, value, persist)
+    reaper.SetExtState(section, key, tostring(value), persist or false)
 end
 
-function rprw.GetExtState(section, key)
-    return reaper.GetExtState(utils.GetExtStateSectionName(section), key)
+---Get the extended state value for a specific section and key.
+---@param section string
+---@param key string
+---@return string retval
+function rsw.GetExtState(section, key)
+    return reaper.GetExtState(section, key)
 end
 
-function rprw.DeleteExtState(section, key, persist)
-    return reaper.DeleteExtState(utils.GetExtStateSectionName(section), key,
-        persist or false)
+---Get the extended state value for a specific section and key as boolean
+---@param section string
+---@param key string
+---@return boolean retval
+function rsw.GetExtStateBool(section, key)
+    return rsw.GetExtState(section, key) == "true"
 end
 
-function rprw.HasExtState(section, key)
-    return reaper.HasExtState(utils.GetExtStateSectionName(section), key)
+---Get the extended state value for a specific section and key as boolean
+---@param section string
+---@param key string
+---@return number? retval
+function rsw.GetExtStateInt(section, key)
+    return tonumber(rsw.GetExtState(section, key))
 end
 
-function rprw.SetTransportExtState(key, value, persist)
-    rprw.SetExtState("transport", key, value, persist)
+---Delete the extended state value for a specific section and key. persist=true means the value should remain deleted the next time REAPER is opened.
+---@param section string
+---@param key string
+---@param persist? boolean
+function rsw.DeleteExtState(section, key, persist)
+    return reaper.DeleteExtState(section, key, persist or false)
 end
 
-function rprw.GetTransportExtState(key)
-    return
-        rprw.GetExtState("transport", key)
+---Returns true if there exists an extended state value for a specific section and key.
+---@param section string
+---@param key string
+---@return boolean retval
+function rsw.HasExtState(section, key)
+    return reaper.HasExtState(section, key)
 end
 
-function rprw.DeleteTransportExtState(key, persist)
-    rprw.DeleteExtState("transport", key, persist)
-end
-
-function rprw.HasTransportExtState(key)
-    return
-        rprw.HasExtState("transport", key)
-end
-
-function rprw.SetGlobalExtState(key, value, persist)
-    rprw.SetExtState("global", key, value, persist)
-end
-
-function rprw.GetGlobalExtState(key) return rprw.GetExtState("global", key) end
-
-function rprw.DeleteGlobalExtState(key, persist)
-    rprw.DeleteExtState("global", key, persist)
-end
-
-function rprw.HasGlobalExtState(key) return rprw.HasExtState("global", key) end
-
-function rprw.SetMidiExtState(key, value, persist)
-    rprw.SetExtState("midi", key, value, persist)
-end
-
-function rprw.GetMidiExtState(key) return rprw.GetExtState("midi", key) end
-
-function rprw.DeleteMidiExtState(key, persist)
-    rprw.DeleteExtState("midi", key, persist)
-end
-
-function rprw.HasMidiExtState(key) return rprw.HasExtState("midi", key) end
-
-return rprw
+return rsw
