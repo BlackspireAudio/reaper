@@ -2,11 +2,12 @@
 
 !/Effects 
 /Effects/*
-!/Effects/Blackspire
+!/Effects/BlackspireJSFX
 
 !/Scripts 
 /Scripts/*
-!/Scripts/Blackspire Scripts
+!/Scripts/BlackspireScripts
+blk_gen*
 
 !/.vscode
 /.vscode/*
