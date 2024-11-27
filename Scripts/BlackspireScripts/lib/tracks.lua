@@ -1,4 +1,5 @@
-local rsw = require 'reascript_wrappers'
+local rsw = require 'reascript_wrapper'
+local utils = require 'utils'
 
 local tm = {} -- tracks module
 
@@ -248,5 +249,45 @@ function tm.CycleTrackRecMonStates(track, cycle_states)
         cycle_states[1].rec_mon)
     return cycle_states[1]
 end
+
+---Set a trait on a track by adding or removing a keyword from the SWS track notes
+---@param track MediaTrack track to set the trait on
+---@param trait string keyword to add or remove from the track notes
+---@param active boolean true to add the keyword, false to remove it
+function tm.SetSWSNoteTrait(track, trait, active)
+    local track_notes = reaper.NF_GetSWSTrackNotes(track)
+    local has_trait = tm.HasSWSNoteTrait(track, trait)
+    if has_trait and not active then
+        if track_notes:find("\n" .. trait) then
+            track_notes = track_notes:gsub("\n" .. trait, "")
+        else
+            track_notes = track_notes:gsub(trait, "")
+        end
+        reaper.NF_SetSWSTrackNotes(track, track_notes)
+    elseif not has_trait and active then
+        reaper.NF_SetSWSTrackNotes(track, track_notes .. "\n" .. trait)
+    end
+end
+
+---Check if a trait is set on a track by checking for a keyword in the SWS track notes
+---@param track MediaTrack track to check the trait on
+---@param trait string keyword to check for in the track notes
+---@return boolean true if the keyword is found in the track notes
+function tm.HasSWSNoteTrait(track, trait)
+    local res = reaper.NF_GetSWSTrackNotes(track):find(trait)
+    return res and true or false
+end
+
+---Toggle a trait on a track by adding or removing a keyword from the SWS track notes
+---@param track MediaTrack track to toggle the trait on
+---@param trait string keyword to add or remove from the track notes
+function tm.ToggleSWSNoteTrait(track, trait)
+    tm.SetSWSNoteTrait(track, trait, not tm.HasSWSNoteTrait(track, trait))
+end
+
+tm.SWSNoteTrait = {
+    FreezeToMono = "freeze_to_mono",
+    UmnuteOnUnfreeze = "unmute_on_unfreeze",
+}
 
 return tm

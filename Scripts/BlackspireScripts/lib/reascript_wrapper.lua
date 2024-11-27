@@ -12,10 +12,11 @@ function rsw.GetTrackUnderMouseCursor()
 end
 
 ---Get all selected tracks excluding tracks in the exclude_tracks table
----@param exclude_tracks table table of tracks to exclude from the selection
----@param project int optional project index
+---@param exclude_tracks? table table of tracks to exclude from the selection
+---@param project? integer optional project index
 ---@return table selected_tracks table of selected tracks excluding tracks in the exclude_tracks table
 function rsw.GetSelectedTracks(exclude_tracks, project)
+    exclude_tracks = exclude_tracks or {}
     project = project or 0
     local exclude_track_numbers = {}
     for i = 1, #exclude_tracks do
@@ -40,29 +41,32 @@ end
 
 ---Get all child tracks of a folder track
 ---@param track MediaTrack track to get child tracks from
----@param inclusive boolean true to include the provided track in the returned table
+---@param include_parent? boolean true to include the provided track in the returned table
+---@param max_depth? integer optional maximum depth to search for child tracks or 0 for no limit
 ---@return table child_tracks table of child tracks or empty table if track is not a folder track
-function rsw.GetChildTracks(track, inclusive)
+function rsw.GetChildTracks(track, include_parent, max_depth)
+    max_depth = max_depth or 0
     local child_tracks = {}
-    if inclusive then child_tracks[#child_tracks + 1] = track end
+    if include_parent then child_tracks[#child_tracks + 1] = track end
     if reaper.GetMediaTrackInfo_Value(track, "I_FOLDERDEPTH") == 1 then
         -- child track search always starts at relative depth of 1
-        local relative_depth = 1
+        local relative_depth = 1.0
         local track_id = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
         local num_tracks = reaper.CountTracks(0)
         -- iterate over all tracks after the provided track untill we are back at the same folder depth
         -- note that GetMediaTrackInfo_Value returns 1-indexed track numbers and GetTrack uses 0-indexed track numbers
         for i = track_id, num_tracks - 1 do
             local child_track = reaper.GetTrack(0, i)
-            child_tracks[#child_tracks + 1] = child_track
-            local folder_depth = reaper.GetMediaTrackInfo_Value(child_track,
-                "I_FOLDERDEPTH")
-            if folder_depth == 1 then
+            if max_depth == 0 or relative_depth <= max_depth then
+                table.insert(child_tracks, child_track)
+            end
+            local folder_depth = reaper.GetMediaTrackInfo_Value(child_track, "I_FOLDERDEPTH")
+            if folder_depth == 1.0 then
                 -- if child track is a folder track, increment relative depth
                 relative_depth = relative_depth + 1
             elseif folder_depth < 0 then
                 -- if child track is last track in a folder, decrement relative depth by folder temination tier
-                relative_depth = relative_depth - folder_depth
+                relative_depth = relative_depth - 1
             end
             if relative_depth <= 0 then
                 -- if we are back at the original folder depth, break the loop as we have found all child tracks
@@ -85,12 +89,18 @@ function rsw.GetSelectedItems(project)
     return selected_items
 end
 
-function rsw.SelectTracks(tracks)
+---Select all tracks in the provided table
+---@param tracks table tracks to select
+---@param clear_prev_selection? any true to clear previous selection, false to keep previous selection
+function rsw.SelectTracks(tracks, clear_prev_selection)
+    if clear_prev_selection then rsw.UnselectAllTracks() end
     for i = 1, #tracks do
         if tracks[i] then reaper.SetTrackSelected(tracks[i], true) end
     end
 end
 
+---Select all items in the provided table
+---@param items table items to select
 function rsw.SelectItems(items)
     for i = 1, #items do reaper.SetMediaItemSelected(items[i], true) end
 end
@@ -98,7 +108,7 @@ end
 ---Set Mute state on track
 ---@param track MediaTrack track to set mute state on
 ---@param mute boolean true to mute track, false to unmute
----@param group any false to ignore track grouping
+---@param group? boolean optional, false to ignore track grouping
 function rsw.SetTrackUIMute(track, mute, group)
     reaper.SetTrackUIMute(track, utils.BoolInt(mute), group and 0 or 1)
 end
@@ -107,7 +117,7 @@ end
 ---@param track MediaTrack track to set solo state on
 ---@param solo boolean true to solo track, false to unsolo
 ---@param in_place boolean true to solo in-place (respect routing), false to solo not-in-place (ignore routing)
----@param group boolean false to ignore track grouping
+---@param group? boolean optional, false to ignore track grouping
 function rsw.SetTrackUISolo(track, solo, in_place, group)
     local i_solo = 0 -- unsolo track
     if solo then
@@ -217,6 +227,8 @@ end
 
 function rsw.UnselectAllMediaItems() reaper.Main_OnCommand(40289, 0) end
 
+function rsw.UnselectAllTracks() reaper.Main_OnCommand(40297, 0) end
+
 function rsw.DeleteTrack(track)
     local track_folder_depth = reaper.GetMediaTrackInfo_Value(track,
         "I_FOLDERDEPTH")
@@ -249,6 +261,32 @@ function rsw.DeleteTrack(track)
         end
     end
     reaper.DeleteTrack(track)
+end
+
+---Checks if a track is a folder track
+---@param track any MediaTrack track to check
+---@return boolean retval true if track is a folder track, false otherwise
+function rsw.IsFolderTrack(track)
+    return reaper.GetMediaTrackInfo_Value(track, "I_FOLDERDEPTH") == 1
+end
+
+---Checks if a track has sends
+---@param track MediaTrack track to check
+---@param include_hardware_sends? boolean optional true to include hardware sends in the check
+---@return boolean retval true if track has sends, false otherwise
+function rsw.HasSends(track, include_hardware_sends)
+    local count = reaper.GetTrackNumSends(track, 0)
+    if include_hardware_sends then
+        count = count + reaper.GetTrackNumSends(track, 1)
+    end
+    return count > 0
+end
+
+---Check if a track has any FX
+---@param track MediaTrack track to check
+---@return boolean retval true if track has FX, false otherwise
+function rsw.HasFx(track)
+    return reaper.TrackFX_GetCount(track) > 0
 end
 
 ---Set the extended state value for a specific section and key. persist=true means the value should be stored and reloaded the next time REAPER is opened.

@@ -1,4 +1,4 @@
-local rsw = require 'reascript_wrappers'
+local rsw = require 'reascript_wrapper'
 local utils = require 'utils'
 
 local trm = {} -- transport module

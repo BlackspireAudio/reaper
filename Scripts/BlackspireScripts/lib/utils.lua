@@ -22,8 +22,9 @@ utils.ExtStateSection = {
     PROJECT = ext_state_prefix .. '_project',
     MIDI = ext_state_prefix .. '_midi',
 }
-utils.ExtStateKeys={
-    USAGE_COUNT='counttotal'
+utils.ExtStateKeys = {
+    USAGE_COUNT = 'counttotal'
 }
+
 
 return utils
