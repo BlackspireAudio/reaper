@@ -68,17 +68,18 @@ end
 -- Mute the top level children of folder tracks that don't have sends to prevent them from using CPU
 for i = 1, #folder_tracks do
     local folder_track = folder_tracks[i]
-    local children = rsw.GetChildTracks(folder_track, false, 1)
+    local children = rsw.GetChildTracks(folder_track)
+    local children_to_disable = {}
     for j = 1, #children do
         local child_track = children[j]
         if not rsw.HasSends(child_track, true) and rsw.HasFx(child_track) then
-            rsw.SetTrackUIMute(child_track, true)
-            -- set a note trait to unmute the track when it's unfrozen
-            tm.SetSWSNoteTrait(child_track, tm.SWSNoteTrait.UmnuteOnUnfreeze, true)
+            table.insert(children_to_disable, child_track)
+            -- set a note trait specifying that the track was disabled on freeze
+            tm.SetSWSNoteTrait(child_track, tm.SWSNoteTrait.DisabledOnFreeze, true)
         end
     end
+    tm.SetEnabledState(children_to_disable, false)
 end
 rsw.SelectTracks(selected_tracks, true)
-
 
 reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

@@ -1,11 +1,11 @@
--- @description Smart unfreeze tracks. Unfreezes all tracks and unmutes top level children of folder tracks that were muted by smart freeze action
+-- @description Toggle tracks enabled state
 -- @version 1.0
 -- @author Blackspire
 
 --------------------------------------------------
 --------------------PARAMS------------------------
 --------------------------------------------------
-local undo_message = "Smart unfreeze tracks"
+local undo_message = "Toggle tracks enabled state"
 
 --------------------------------------------------
 ------------------LOAD LIBRARIES------------------
@@ -27,26 +27,7 @@ local tm = require "tracks"
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-reaper.Main_OnCommand(41644, 0) --Track: Unfreeze all tracks
-
--- Unmute child tracks that were muted by smart freeze action
 local selected_tracks = rsw.GetSelectedTracks()
-for i = 1, #selected_tracks do
-    local track = selected_tracks[i]
-    if rsw.IsFolderTrack(track) then
-        -- only check top level children of folder track
-        local children = rsw.GetChildTracks(track, false)
-        local children_to_enable = {}
-        for j = 1, #children do
-            local child = children[j]
-            if tm.HasSWSNoteTrait(child, tm.SWSNoteTrait.DisabledOnFreeze) then
-                tm.SetSWSNoteTrait(child, tm.SWSNoteTrait.DisabledOnFreeze, false)
-                table.insert(children_to_enable, child)
-            end
-        end
-        tm.SetEnabledState(children_to_enable, true, true)
-    end
-end
-
+tm.SetEnabledState(selected_tracks, not tm.GetDominantEnabledStatus(selected_tracks), true)
 
 reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

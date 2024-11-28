@@ -285,9 +285,66 @@ function tm.ToggleSWSNoteTrait(track, trait)
     tm.SetSWSNoteTrait(track, trait, not tm.HasSWSNoteTrait(track, trait))
 end
 
+function tm.IsEnabled(track)
+    return reaper.GetMediaTrackInfo_Value(track, 'I_FXEN') ~= 0
+end
+
+---Get the dominant enabled status of a list of tracks
+---@param tracks table<MediaTrack> list of tracks to check the enabled status on
+---@return boolean true if more tracks are enabled than disabled, false if more tracks are disabled than enabled
+function tm.GetDominantEnabledStatus(tracks)
+    local enabled_count = 0
+    local disabled_count = 0
+    for i = 1, #tracks do
+        local track = tracks[i]
+        if tm.IsEnabled(track) then
+            enabled_count = enabled_count + 1
+        else
+            disabled_count = disabled_count + 1
+        end
+    end
+
+    if enabled_count > disabled_count then
+        return true
+    else
+        return false
+    end
+end
+
+---Set the enabled state of a list of tracks
+---@param tracks table<MediaTrack> list of tracks to set the enabled state on
+---@param enabled boolean true to enable the tracks, false to disable them
+---@param preserve_selection? boolean true to preserve the selection state of the tracks
+function tm.SetEnabledState(tracks, enabled, preserve_selection)
+    preserve_selection = preserve_selection or false
+    local selected_tracks = {}
+    if preserve_selection then
+        selected_tracks = rsw.GetSelectedTracks()
+    end
+
+    rsw.SelectTracks(tracks, true)
+    if enabled then
+        reaper.Main_OnCommand(40536, 0) -- Track: Set all FX online for selected tracks
+        reaper.Main_OnCommand(41313, 0) -- Track: Unlock track controls
+    end
+    for i = 1, #tracks do
+        reaper.SetMediaTrackInfo_Value(tracks[i], "B_MUTE", utils.BoolInt(not enabled))
+        reaper.SetMediaTrackInfo_Value(tracks[i], "I_FXEN", utils.BoolInt(enabled))
+    end
+    -- must not lock track controls before setting media track info values
+    if not enabled then
+        reaper.Main_OnCommand(40535, 0) -- Track: Set all FX offline for selected tracks
+        reaper.Main_OnCommand(41312, 0) -- Track: Lock track controls
+    end
+
+    if preserve_selection then
+        rsw.SelectTracks(selected_tracks, true)
+    end
+end
+
 tm.SWSNoteTrait = {
     FreezeToMono = "freeze_to_mono",
-    UmnuteOnUnfreeze = "unmute_on_unfreeze",
+    DisabledOnFreeze = "disabled_on_freeze",
 }
 
 return tm
