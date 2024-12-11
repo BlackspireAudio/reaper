@@ -65,27 +65,25 @@ while (
 
         status = msg1 & $xF0;
         channel = msg1 & $x0F;
-
-        (status == STATUS_NOTE_ON || status == STATUS_NOTE_OFF) ?(
-            // Redirect only note off events to the previously channel 
+        
+        (status == STATUS_CC_MSG && msg2 == channel_switch_cc && msg3 != active_channel && msg3 <= N_CHANNELS)? (
+            // Switch channel
+            prev_active_channel = active_channel;
+            active_channel = msg3;
+            all_note_off_delay_counter = all_note_off_delay_spl;
+        ):(
             (status == STATUS_NOTE_OFF && prev_active_channel > 0) ? (
+                // Redirect only note off events to the previously channel 
                 midisend(offset, STATUS_NOTE_OFF + prev_active_channel-1, msg2, msg3);
             );
-            
-            // Redirect note events to the active channel 
+                
             (active_channel > 0)? (
+                // Redirect all events to the active channel 
                 midisend(offset, status + active_channel-1, msg2, msg3);
+            ):(                
+                // if no active channel, forward all events in their original form
+                midisend(offset, msg1, msg2, msg3);
             );
-        ): (// Redirect non-note events if necessary 
-            (status == STATUS_CC_MSG && msg2 == channel_switch_cc && msg3 != active_channel && msg3 <= N_CHANNELS)? (
-                prev_active_channel = active_channel;
-                active_channel = msg3;
-                all_note_off_delay_counter = all_note_off_delay_spl;
-            );
-            // forward all non-note events in their original form
-            midisend(offset, msg1, msg2, msg3);
-        );
+        )
     );
-
-
 );
