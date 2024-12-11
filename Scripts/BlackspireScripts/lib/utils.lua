@@ -13,6 +13,14 @@ function utils.msg(message)
     reaper.ShowConsoleMsg(tostring(message) .. '\n')
 end
 
+function utils.ToDb(volume)
+    return (20 * math.log(volume, 10))
+end
+
+function utils.FromDb(volume)
+    return 10 ^ (volume / 20)
+end
+
 local ext_state_prefix = 'blackspire'
 utils.ExtStateSection = {
     GLOBAL = ext_state_prefix,

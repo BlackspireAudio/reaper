@@ -1,4 +1,5 @@
 local rsw = require 'reascript_wrapper'
+local utils = require 'utils'
 
 local im = {} -- item module
 
@@ -152,6 +153,131 @@ function im.SplitMediaItem(item, position, select)
         reaper.SetMediaItemSelected(item_r, not select_left)
     end
     return item_r
+end
+
+---Returns the start position of the item in seconds
+---@param item MediaItem item to get the start position of
+---@param snap_offset? boolean if true, the returned position will be snapped to the grid
+---@return number start position of the item in seconds
+function im.GetStartPosition(item, snap_offset)
+    snap_offset = snap_offset or false
+    local start_pos = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+    if snap_offset then
+        start_pos = reaper.BR_GetClosestGridDivision(start_pos)
+    end
+    return start_pos
+end
+
+---Sets the take playback behavior of the item
+---@param items table<MediaItem> items to set the playback behavior of
+---@param active boolean true to enable playback of all takes, false to restrict playback to the active take
+function im.SetAllTakesPlay(items, active)
+    for _, item in ipairs(items) do
+        reaper.SetMediaItemInfo_Value(item, "B_ALLTAKESPLAY", utils.BoolInt(active))
+    end
+end
+
+---Resets the take properties of the items to default values and deactivates the AllTakesPlay flag
+---@param items table<MediaItem> items to reset the take properties of
+---@param volume boolean true to reset the volume of all takes to 0dB
+---@param pan boolean true to reset the pan of all takes to 0
+function im.ClearTakeProperties(items, volume, pan)
+    for _, item in ipairs(items) do
+        reaper.SetMediaItemInfo_Value(item, "B_ALLTAKESPLAY", 0)
+        for i = 0, reaper.CountTakes(item) - 1 do
+            local take = reaper.GetMediaItemTake(item, i)
+            if volume then
+                reaper.SetMediaItemTakeInfo_Value(take, "D_VOL", 1)
+            end
+            if pan then
+                reaper.SetMediaItemTakeInfo_Value(take, "D_PAN", 0)
+            end
+        end
+    end
+end
+
+---Set the active take of the item to stereo playback
+---@param item MediaItem item to set the playback behavior of
+---@param toggle boolean true to toggle between stereo playback and default playback if selected takes are already set to stereo playback
+---@param is_right boolean true to select active as right channel and previous take as left channel, false to select active as left channel and next take as right channel
+function im.SetActiveTakeToStereoPlayback(item, toggle, is_right)
+    local left, right
+    local active_take = reaper.GetActiveTake(item)
+    local active_take_id = reaper.GetMediaItemTakeInfo_Value(active_take, "IP_TAKENUMBER")
+    local take_count = reaper.CountTakes(item)
+    if is_right then
+        local left_take_id
+        if active_take_id == 0 then
+            left_take_id = take_count - 1
+        else
+            left_take_id = active_take_id - 1
+        end
+        left = reaper.GetMediaItemTake(item, left_take_id)
+        right = active_take
+    else
+        left = active_take
+        right = reaper.GetMediaItemTake(item, (active_take_id + 1) % take_count)
+    end
+    im.SetTakesToStereoPlayback(item, left, right, toggle)
+end
+
+---Modifies item and take properties to play only the selected takes in stereo
+---@param item MediaItem item to set the playback behavior of
+---@param left MediaItem_Take take to pan left
+---@param right MediaItem_Take take to pan right
+---@param toggle? boolean true to toggle between stereo playback and default playback if selected takes are already set to stereo playback
+function im.SetTakesToStereoPlayback(item, left, right, toggle)
+    if toggle and reaper.GetMediaItemTakeInfo_Value(left, "D_PAN") == -1 and reaper.GetMediaItemTakeInfo_Value(right, "D_PAN") == 1 then
+        im.ClearTakeProperties({ item }, true, true)
+    else
+        for i = 0, reaper.CountTakes(item) - 1 do
+            reaper.SetMediaItemTakeInfo_Value(reaper.GetMediaItemTake(item, i), "D_VOL", 0)
+            reaper.SetMediaItemTakeInfo_Value(reaper.GetMediaItemTake(item, i), "D_PAN", 0)
+        end
+
+        reaper.SetMediaItemInfo_Value(item, "B_ALLTAKESPLAY", 1)
+        reaper.SetMediaItemTakeInfo_Value(left, "D_VOL", 1)
+        reaper.SetMediaItemTakeInfo_Value(left, "D_PAN", -1)
+        reaper.SetMediaItemTakeInfo_Value(right, "D_VOL", 1)
+        reaper.SetMediaItemTakeInfo_Value(right, "D_PAN", 1)
+    end
+    reaper.UpdateItemInProject(item)
+end
+
+---Returns the minimum number of takes in the selected items
+---@param items table<MediaItem> items to get the minimum number of takes from
+---@return integer minimum number of takes in the items
+function im.GetMinTakesCount(items)
+    local min_takes = 1000
+    for _, item in ipairs(items) do
+        local takes = reaper.CountTakes(item)
+        if takes < min_takes then
+            min_takes = takes
+        end
+    end
+    return min_takes
+end
+
+---Set the locked state of the items
+---@param items table<MediaItem> items to set the locked state of
+---@param toggle boolean true to toggle the locked state based on the majority state of the items, false to set the locked state to the given state
+---@param state? boolean state to set the locked state to if toggle is false
+function im.SetLockedState(items, toggle, state)
+    if toggle then
+        local locked_count = 0
+        local unlocked_count = 0
+        for _, item in ipairs(items) do
+            if reaper.GetMediaItemInfo_Value(item, "C_LOCK") == 1 then
+                locked_count = locked_count + 1
+            else
+                unlocked_count = unlocked_count + 1
+            end
+        end
+        state = unlocked_count > locked_count
+    end
+    for _, item in ipairs(items) do
+        reaper.SetMediaItemInfo_Value(item, "C_LOCK", utils.BoolInt(state))
+    end
 end
 
 return im

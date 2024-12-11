@@ -286,7 +286,11 @@ function tm.ToggleSWSNoteTrait(track, trait)
 end
 
 function tm.IsEnabled(track)
-    return reaper.GetMediaTrackInfo_Value(track, 'I_FXEN') ~= 0
+    return reaper.GetMediaTrackInfo_Value(track, 'I_FXEN') == 1
+end
+
+function tm.IsFolder(track)
+    return reaper.GetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH') ~= 0
 end
 
 ---Get the dominant enabled status of a list of tracks

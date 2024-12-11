@@ -78,13 +78,13 @@ function rsw.GetChildTracks(track, include_parent, max_depth)
 end
 
 ---Get all selected items
----@param project int optional project index
+---@param project? integer optional project index
 ---@return table selected_items table of selected items
 function rsw.GetSelectedItems(project)
     project = project or 0
     local selected_items = {}
-    for i = reaper.CountSelectedMediaItems(project) - 1, 0, -1 do
-        selected_items[i + 1] = reaper.GetSelectedMediaItem(project, i)
+    for i = 0, reaper.CountSelectedMediaItems(project) do
+        table.insert(selected_items, reaper.GetSelectedMediaItem(project, i))
     end
     return selected_items
 end
