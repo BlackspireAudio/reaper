@@ -19,7 +19,6 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
 local tm = require "tracks"
 local utils = require "utils"
 
@@ -28,7 +27,7 @@ local utils = require "utils"
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local selected_tracks = rsw.GetSelectedTracks()
+local selected_tracks = tm.GetSelectedTracks()
 local mono_tracks = {}
 local stereo_tracks = {}
 local multichannel_tracks = {}
@@ -45,34 +44,34 @@ for i = 1, #selected_tracks do
     else
         table.insert(multichannel_tracks, track)
     end
-    if rsw.IsFolderTrack(track) then
+    if tm.IsFolder(track) then
         table.insert(folder_tracks, track)
     end
 end
 
 if #mono_tracks > 0 then
-    rsw.SelectTracks(mono_tracks, true)
+    tm.SelectTracks(mono_tracks, true)
     reaper.Main_OnCommand(40901, 0) --Track: Freeze to mono (render pre-fader, save/remove items and online FX)
 end
 
 if #stereo_tracks > 0 then
-    rsw.SelectTracks(stereo_tracks, true)
+    tm.SelectTracks(stereo_tracks, true)
     reaper.Main_OnCommand(41223, 0) --Track: Freeze to stereo (render pre-fader, save/remove items and online FX)
 end
 
 if #multichannel_tracks > 0 then
-    rsw.SelectTracks(multichannel_tracks, true)
+    tm.SelectTracks(multichannel_tracks, true)
     reaper.Main_OnCommand(40877, 0) --Track: Freeze to multichannel (render pre-fader, save/remove items and online FX)
 end
 
 -- Mute the top level children of folder tracks that don't have sends to prevent them from using CPU
 for i = 1, #folder_tracks do
     local folder_track = folder_tracks[i]
-    local children = rsw.GetChildTracks(folder_track)
+    local children = tm.GetChildTracks(folder_track)
     local children_to_disable = {}
     for j = 1, #children do
         local child_track = children[j]
-        if not rsw.HasSends(child_track, true) and rsw.HasFx(child_track) then
+        if not tm.HasSends(child_track, true) and tm.HasFx(child_track) then
             table.insert(children_to_disable, child_track)
             -- set a note trait specifying that the track was disabled on freeze
             tm.SetSWSNoteTrait(child_track, tm.SWSNoteTrait.DisabledOnFreeze, true)
@@ -80,6 +79,6 @@ for i = 1, #folder_tracks do
     end
     tm.SetEnabledState(children_to_disable, false)
 end
-rsw.SelectTracks(selected_tracks, true)
+tm.SelectTracks(selected_tracks, true)
 
 reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

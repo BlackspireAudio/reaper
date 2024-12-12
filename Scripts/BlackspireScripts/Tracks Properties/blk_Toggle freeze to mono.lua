@@ -20,14 +20,13 @@ f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
 local tm = require "tracks"
-local rsw = require "reascript_wrapper"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local selected_tracks = rsw.GetSelectedTracks()
+local selected_tracks = tm.GetSelectedTracks()
 for i = 1, #selected_tracks do
     tm.ToggleSWSNoteTrait(selected_tracks[i], tm.SWSNoteTrait.FreezeToMono)
 end

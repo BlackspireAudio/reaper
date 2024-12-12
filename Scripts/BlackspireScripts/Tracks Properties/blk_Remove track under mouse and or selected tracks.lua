@@ -18,25 +18,25 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local tm = require "tracks"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
-local track = rsw.GetTrackUnderMouseCursor()
+local track = tm.GetTrackUnderMouseCursor()
 
 reaper.PreventUIRefresh(1)
 reaper.Undo_BeginBlock()
 if track and not reaper.IsTrackSelected(track) then
     -- store active track selctions excluding any tracks that will be deleted through folder deletion
-    local selected_tracks = rsw.GetSelectedTracks(rsw.GetChildTracks(track))
+    local selected_tracks = tm.GetSelectedTracks(tm.GetChildTracks(track))
     reaper.Main_OnCommand(40297, 0) -- Track: Unselect (clear selection of) all tracks
     -- select track under mouse
     reaper.SetTrackSelected(track, true)
     -- delete track using native action (to avoid dealing with folder depth changes)
     reaper.Main_OnCommand(40005, 0) -- Track: Remove tracks
     -- restore selections
-    rsw.SelectTracks(selected_tracks)
+    tm.SelectTracks(selected_tracks)
     reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found
 elseif reaper.GetSelectedTrack(0, 0) then
     reaper.Main_OnCommand(40005, 0)        -- Track: Remove tracks

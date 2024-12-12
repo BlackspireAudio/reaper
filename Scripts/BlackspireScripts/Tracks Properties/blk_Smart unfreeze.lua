@@ -19,7 +19,6 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
 local tm = require "tracks"
 
 --------------------------------------------------
@@ -30,12 +29,12 @@ reaper.Undo_BeginBlock()
 reaper.Main_OnCommand(41644, 0) --Track: Unfreeze all tracks
 
 -- Unmute child tracks that were muted by smart freeze action
-local selected_tracks = rsw.GetSelectedTracks()
+local selected_tracks = tm.GetSelectedTracks()
 for i = 1, #selected_tracks do
     local track = selected_tracks[i]
-    if rsw.IsFolderTrack(track) then
+    if tm.IsFolder(track) then
         -- only check top level children of folder track
-        local children = rsw.GetChildTracks(track, false)
+        local children = tm.GetChildTracks(track, false)
         local children_to_enable = {}
         for j = 1, #children do
             local child = children[j]

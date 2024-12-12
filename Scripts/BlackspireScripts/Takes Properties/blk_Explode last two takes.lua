@@ -37,7 +37,7 @@ local target_track2_id = reaper.GetMediaTrackInfo_Value(source_track, "IP_TRACKN
 if target_track2_id <= 0 then return reaper.MB("This script requires a minimum of two tracks below the currently selected track", "Whoops!", 0) end
 local start_pos = im.GetStartPosition(item)
 im.ClearTakeProperties(selected_items, true, true)
-rsw.SelectTracks({ source_track }, true)
+tm.SelectTracks({ source_track }, true)
 reaper.SetEditCurPos(start_pos, false, false)
 
 

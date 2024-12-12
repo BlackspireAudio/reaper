@@ -20,7 +20,6 @@ f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
 local utils = require "utils"
-local rsw = require "reascript_wrapper"
 local tm = require "tracks"
 
 --------------------------------------------------
@@ -28,13 +27,13 @@ local tm = require "tracks"
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local selected_tracks = rsw.GetSelectedTracks()
+local selected_tracks = tm.GetSelectedTracks()
 if #selected_tracks == 0 then return end
 local selected_track = selected_tracks[1]
 if not tm.IsFolder(selected_track) then return end
 local volume_adjustment = utils.ToDb(reaper.GetMediaTrackInfo_Value(selected_track, "D_VOL"))
 utils.msg(volume_adjustment)
-local children = rsw.GetChildTracks(selected_track, false, 1)
+local children = tm.GetChildTracks(selected_track, false, 1)
 for i = 1, #children do
     local new_volume = utils.FromDb(utils.ToDb(reaper.GetMediaTrackInfo_Value(children[i], "D_VOL")) + volume_adjustment)
     utils.msg(new_volume)
