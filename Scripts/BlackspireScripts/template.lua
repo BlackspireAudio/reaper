@@ -20,7 +20,7 @@ f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
 local utils = require "utils"
-local rsw = require "reascript_wrapper"
+local misc = require "misc"
 local im = require "items"
 local tm = require "tracks"
 local transport = require "transport"

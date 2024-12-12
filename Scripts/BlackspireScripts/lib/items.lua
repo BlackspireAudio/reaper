@@ -1,13 +1,48 @@
-local rsw = require 'reascript_wrapper'
+local misc = require 'misc'
 local utils = require 'utils'
 
 local im = {} -- item module
 
+---Get all selected items
+---@param project? integer optional project index
+---@return table selected_items table of selected items
+function im.GetSelectedItems(project)
+    project = project or 0
+    local selected_items = {}
+    for i = 0, reaper.CountSelectedMediaItems(project) do
+        table.insert(selected_items, reaper.GetSelectedMediaItem(project, i))
+    end
+    return selected_items
+end
+
+function im.GetItemUnderMouseCursor()
+    local item, pos = reaper.BR_ItemAtMouseCursor()
+    local take
+    if not item then
+        local screen_x, screen_y = reaper.GetMousePosition()
+        item, take = reaper.GetItemFromPoint(screen_x, screen_y, true)
+    end
+    return item, pos
+end
+
+---Select all items in the provided table
+---@param items table items to select
+function im.SelectItems(items)
+    for i = 1, #items do reaper.SetMediaItemSelected(items[i], true) end
+end
+
+function im.GroupSelectedItems() reaper.Main_OnCommand(40032, 0) end
+
+function im.SelectAllItemsInSameGroupsAsCurrentlySelectedItems()
+    reaper.Main_OnCommand(40034, 0)
+end
+
+function im.UnselectAllItems() reaper.Main_OnCommand(40289, 0) end
 
 ---Split media items based on target, split and selection criterias
----@param target int 0 to split currently selected items, 1 to split item under mouse cursor or selected items if hovering over selection, 2 to split only item under mouse cursor
----@param split int 0 to split at edit cursor, 1 to split at time selection, 2 to split at mouse cursor, 3 to split at mouse cursor ignoring snap
----@param select int 0 retain original selection, 1 select only the left half, 2 select only the right half, 3 select both halves, 4 select shorter half, 5 select longer half, 6 select quieter half, 7 select louder half
+---@param target integer 0 to split currently selected items, 1 to split item under mouse cursor or selected items if hovering over selection, 2 to split only item under mouse cursor
+---@param split integer 0 to split at edit cursor, 1 to split at time selection, 2 to split at mouse cursor, 3 to split at mouse cursor ignoring snap
+---@param select integer 0 retain original selection, 1 select only the left half, 2 select only the right half, 3 select both halves, 4 select shorter half, 5 select longer half, 6 select quieter half, 7 select louder half
 ---@param group boolean false to ignore item grouping
 function im.SplitTargetMediaItem(target, split, select, group)
     local split_positions = {}
@@ -27,9 +62,9 @@ function im.SplitTargetMediaItem(target, split, select, group)
             split_positions = { start_time, end_time }
         end
     elseif split == 2 then -- split at mouse cursor
-        split_positions = { reaper.BR_GetClosestGridDivision(rsw.GetPositionUnderMouseCursor()) }
+        split_positions = { reaper.BR_GetClosestGridDivision(misc.GetPositionUnderMouseCursor()) }
     elseif split == 3 then -- split at mouse cursor ignoring snap
-        split_positions = { rsw.GetPositionUnderMouseCursor() }
+        split_positions = { misc.GetPositionUnderMouseCursor() }
     end
 
     if select == 0 then
@@ -38,10 +73,10 @@ function im.SplitTargetMediaItem(target, split, select, group)
         end
     end
 
-    local item, _ = rsw.GetMediaItemUnderMouseCursor()
+    local item, _ = im.GetItemUnderMouseCursor()
     if item then
         if (target == 1 and not reaper.IsMediaItemSelected(item)) or target == 2 then
-            rsw.UnselectAllMediaItems()
+            im.UnselectAllItems()
             reaper.SetMediaItemSelected(item, true)
             add_split_items_to_original_selection = false
         end
@@ -49,7 +84,7 @@ function im.SplitTargetMediaItem(target, split, select, group)
 
 
     if group then
-        rsw.SelectAllItemsInSameGroupsAsCurrentlySelectedItems()
+        im.SelectAllItemsInSameGroupsAsCurrentlySelectedItems()
     end
 
     for i = 0, reaper.CountSelectedMediaItems(0) - 1 do
@@ -58,7 +93,7 @@ function im.SplitTargetMediaItem(target, split, select, group)
             has_grouped_items = true
         end
     end
-    rsw.UnselectAllMediaItems()
+    im.UnselectAllItems()
 
     for _, item in ipairs(items_to_split) do
         for i, position in ipairs(split_positions) do
@@ -96,15 +131,15 @@ function im.SplitTargetMediaItem(target, split, select, group)
             end
         end
         for _, group in pairs(groups) do
-            rsw.UnselectAllMediaItems()
+            im.UnselectAllItems()
             for _, item in ipairs(group) do
                 reaper.SetMediaItemSelected(item, true)
             end
-            rsw.GroupSelectedItems()
+            im.GroupSelectedItems()
         end
 
         if select > 0 then
-            rsw.UnselectAllMediaItems()
+            im.UnselectAllItems()
             for _, item in ipairs(temp_selection_cache) do
                 reaper.SetMediaItemSelected(item, true)
             end
@@ -112,7 +147,7 @@ function im.SplitTargetMediaItem(target, split, select, group)
     end
 
     if select == 0 then
-        rsw.UnselectAllMediaItems()
+        im.UnselectAllItems()
         for _, item in ipairs(originally_selected_items) do
             reaper.SetMediaItemSelected(item, true)
         end
@@ -121,8 +156,8 @@ end
 
 ---split item at given position and adjust selection of the resulting halves based on the selection criteria
 ---@param item MediaItem item to split
----@param position double position to split item at
----@param select int 0 retain original selection, 1 select only the left half, 2 select only the right half, 3 select both halves, 4 select shorter half, 5 select longer half, 6 select quieter half, 7 select louder half
+---@param position number position to split item at
+---@param select integer 0 retain original selection, 1 select only the left half, 2 select only the right half, 3 select both halves, 4 select shorter half, 5 select longer half, 6 select quieter half, 7 select louder half
 function im.SplitMediaItem(item, position, select)
     local item_l = item
     local item_r = reaper.SplitMediaItem(item, position)

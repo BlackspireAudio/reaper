@@ -1,4 +1,4 @@
-local rsw = require 'reascript_wrapper'
+local misc = require 'misc'
 local utils = require 'utils'
 
 local tm = {} -- tracks module
@@ -133,6 +133,25 @@ function tm.SelectTracks(tracks, clear_prev_selection)
     for i = 1, #tracks do
         if tracks[i] then reaper.SetTrackSelected(tracks[i], true) end
     end
+end
+
+---Get the volume of a track
+---@param track MediaTrack track to get volume from
+---@param db? boolean optional true to return volume in dB, false to return linear volume
+---@return number
+function tm.GetVolume(track, db)
+    local volume = reaper.GetMediaTrackInfo_Value(track, "D_VOL")
+    if db then volume = utils.ToDb(volume) end
+    return volume
+end
+
+---Set the volume of a track
+---@param track MediaTrack track to set volume on
+---@param volume number volume to set
+---@param db? boolean optional true if volume is in dB, false if volume is linear
+function tm.SetVolume(track, volume, db)
+    if db then volume = utils.FromDb(volume) end
+    reaper.SetMediaTrackInfo_Value(track, "D_VOL", volume)
 end
 
 -- @description holds wrapper functions for reaper API functions
@@ -354,7 +373,7 @@ function tm.ToggleSoloOnTargetTrack(mouse, select, group, exclusive, in_place)
 end
 
 ---Toggle Solo on given track based on its current state and additional parameters
----@param track MediaTrack track to toggle mute on
+---@param track? MediaTrack track to toggle mute on
 ---@param group boolean false to ignore track grouping
 ---@param exclusive boolean true to unmute all other tracks
 ---@param in_place boolean false to solo not-in-place (ignore routing)
@@ -393,13 +412,13 @@ function tm.ToggleSWSSoloMuteSlot(slot_id, save_on_reset, solo_mute, selected)
     if (solo_mute > 1 or tm.AnyTrackSoloed()) and
         (solo_mute == 1 or tm.AnyTrackMuted()) then
         if save_on_reset then
-            rsw.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, true)
+            misc.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, true)
         end
 
         if solo_mute <= 1 then tm.UnsoloAllTracks() end
         if solo_mute ~= 1 then tm.UnmuteAllTracks() end
     else
-        rsw.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, false)
+        misc.StoreRecallSWSSoloMuteSlot(slot_id, solo_mute, selected, false)
     end
 end
 

@@ -19,7 +19,6 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
 local im = require "items"
 
 --------------------------------------------------
@@ -27,7 +26,7 @@ local im = require "items"
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local selected_items = rsw.GetSelectedItems()
+local selected_items = im.GetSelectedItems()
 if im.GetMinTakesCount(selected_items) < 2 then return reaper.MB("All selected media item must contain at least two takes", "Whoops!", 0) end
 
 for i = 1, #selected_items do

@@ -25,18 +25,11 @@ function BLK_CheckReaperVrs(version, show_error_msg)
     end
 end
 
-local utils = require 'utils'
+local misc = require 'misc'
 ---------------------------------------------------
 function BLK_IncreaseUsedCount()
-    local count
-    if reaper.HasExtState(utils.ExtStateSection.GLOBAL, utils.ExtStateKeys.USAGE_COUNT) then
-        count = tonumber(reaper.GetExtState(utils.ExtStateSection.GLOBAL, utils.ExtStateKeys.USAGE_COUNT))
-    else
-        count = 0
-    end
-    if not count then count = 0 end
-    count = count + 1
-    reaper.SetExtState(utils.ExtStateSection.GLOBAL, utils.ExtStateKeys.USAGE_COUNT, count, true)
+    local cnt = misc.GetExtStateNumber(misc.ExtStateSection.GLOBAL, misc.ExtStateKeys.USAGE_COUNT, 0)
+    misc.SetExtState(misc.ExtStateSection.GLOBAL, misc.ExtStateKeys.USAGE_COUNT, cnt + 1, true)
 end
 
 --------------------------------------------------

@@ -1,4 +1,4 @@
-local rsw = require 'reascript_wrapper'
+local misc = require 'misc'
 local utils = require 'utils'
 
 local trm = {} -- transport module
@@ -31,7 +31,7 @@ function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media, loop
     local loop_iteration_ext_state_key = "current_loop_iteration"
     local recording_restarted_ext_state_key = "recording_restarted"
     local current_loop_iteration = 0
-    if rsw.HasExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) and tonumber(rsw.GetExtStateInt(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) or 0) >= 1 then
+    if misc.HasExtState(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) and tonumber(misc.GetExtStateNumber(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) or 0) >= 1 then
         save_recorded_media = 1
     end
 
@@ -54,9 +54,9 @@ function trm.RestartPlayRecord(record, force_pre_roll, save_recorded_media, loop
         reaper.Main_OnCommand(toggle_pre_roll_action_id, 0) -- Toggle playback pre-roll state
     end
 
-    if actual_restart and rsw.HasExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key) then
+    if actual_restart and misc.HasExtState(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key) then
         -- if loop iteration monitoring is active, signal that the recording has been restarted and this playposition reset should not count as a loop
-        rsw.SetExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, true)
+        misc.SetExtState(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, true)
     end
 
     reaper.Main_OnCommand(stop_action_id, 0)

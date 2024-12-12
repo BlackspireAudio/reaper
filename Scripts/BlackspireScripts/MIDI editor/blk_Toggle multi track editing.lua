@@ -20,7 +20,7 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local misc = require "misc"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
@@ -44,7 +44,7 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 0 then
     elseif reaper.GetToggleCommandStateEx(sec, 40768) == 1 then
         note_color = "track"
     end
-    rsw.SetMidiExtState(note_color_ext_state_key, note_color, true)
+    misc.SetExtState(misc.ExtStateSection.MIDI, misc.ExtStateKeys.NOTE_COLOR, note_color, true)
 
     reaper.MIDIEditor_OnCommand(active_midi_editor, 40768) -- Options: Color notes by track
     reaper.SetToggleCommandState(sec, cmd, 1)
@@ -52,8 +52,8 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 0 then
         reaper.MIDIEditor_OnCommand(active_midi_editor, 40901) -- Options: Avoid setting MIDI items on other tracks editable
     end
 else
-    if rsw.HasMidiExtState(note_color_ext_state_key) then
-        local note_color = rsw.GetMidiExtState(note_color_ext_state_key)
+    if misc.HasExtState(misc.ExtStateSection.MIDI, misc.ExtStateKeys.NOTE_COLOR) then
+        local note_color = misc.GetExtState(misc.ExtStateSection.MIDI, misc.ExtStateKeys.NOTE_COLOR)
         if note_color == "pitch" then
             reaper.MIDIEditor_OnCommand(active_midi_editor, 40740)
         elseif note_color == "velocity" then

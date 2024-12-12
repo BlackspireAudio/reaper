@@ -19,7 +19,7 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local misc = require "misc"
 local im = require "items"
 
 --------------------------------------------------
@@ -27,11 +27,11 @@ local im = require "items"
 --------------------------------------------------
 reaper.Undo_BeginBlock()
 
-local selected_items = rsw.GetSelectedItems()
+local selected_items = im.GetSelectedItems()
 reaper.Main_OnCommand(40421, 0) -- Item: Select all items in track
-im.SetLockedState(rsw.GetSelectedItems(), true)
+im.SetLockedState(im.GetSelectedItems(), true)
 reaper.Main_OnCommand(40289, 0) -- Item: Unselect (clear selection of) all items
-rsw.SelectItems(selected_items)
+im.SelectItems(selected_items)
 reaper.UpdateArrange()
 
 reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

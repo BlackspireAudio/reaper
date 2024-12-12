@@ -20,7 +20,7 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local misc = require "misc"
 local utils = require "utils"
 
 --------------------------------------------------
@@ -40,19 +40,19 @@ function loop()
             -- recording
             current_play_position = reaper.GetPlayPosition()
             if current_play_position < previous_play_position then
-                if rsw.GetExtStateBool(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key) then
+                if misc.GetExtStateBool(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key) then
                     -- recording has been restarted, reset loop iteration count
-                    rsw.SetExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, "false")
-                    rsw.SetExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, 0)
+                    misc.SetExtState(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, "false")
+                    misc.SetExtState(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, 0)
                 else
                     -- increment loop iteration count
-                    rsw.SetExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, (rsw.GetExtStateInt(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) or 0) + 1)
+                    misc.SetExtState(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, (misc.GetExtStateNumber(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key) or 0) + 1)
                 end
             end
             previous_play_position = current_play_position
         elseif previous_playstate & 4 == 4 and current_playstate & 4 == 0 then
             -- only executed once in transition from recording to not recording
-            rsw.SetExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, 0)
+            misc.SetExtState(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key, 0)
             current_play_position = 0
             previous_play_position = 0
         end
@@ -70,13 +70,13 @@ if reaper.GetToggleCommandStateEx(sec, cmd) == 1 then
     -- set action options to 8 to turn off toggle state
     reaper.set_action_options(8)
     -- clean up ext states
-    rsw.DeleteExtState(utils.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key)
-    rsw.DeleteExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key)
+    misc.DeleteExtState(misc.ExtStateSection.TRANSPORT, loop_iteration_ext_state_key)
+    misc.DeleteExtState(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key)
 else
     -- set action toggle state on (4) cause rerun of action to terminate active instance (1) and restart (2)
     -- this allows the script clean up and set the toggle state after the instance is terminated
     reaper.set_action_options(1 | 2 | 4)
     -- create ext state to allow the restart action to communicate with this script
-    rsw.SetExtState(utils.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, "false")
+    misc.SetExtState(misc.ExtStateSection.TRANSPORT, recording_restarted_ext_state_key, "false")
     loop()
 end

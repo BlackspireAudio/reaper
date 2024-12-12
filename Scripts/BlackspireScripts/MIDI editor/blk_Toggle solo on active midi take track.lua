@@ -20,12 +20,13 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local misc = require "misc"
 local tm = require "tracks"
+local midi = require "midi"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
 --------------------------------------------------
 reaper.Undo_BeginBlock()
-tm.ToggleSoloOnTrack(rsw.GetMIDIEditorActiveTakeTrack(), true, false, true)
+tm.ToggleSoloOnTrack(midi.GetActiveTakeTrack(), true, false, true)
 reaper.Undo_EndBlock(undo_message, -1) -- -1 = add all changes to undo state, todo: limit using appropriate flags once clear flag definition is found

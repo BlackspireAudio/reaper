@@ -55,7 +55,7 @@ end
 f:close()
 package.path = package.path .. ";" .. lib_path .. "?.lua;" .. lib_path .. "fallback.lua"
 if not require "version" or not BLK_CheckVersion(1.0) or not BLK_CheckReaperVrs(7.0) then return end
-local rsw = require "reascript_wrapper"
+local midi = require "midi"
 
 --------------------------------------------------
 ---------------------MAIN-------------------------
@@ -63,7 +63,7 @@ local rsw = require "reascript_wrapper"
 reaper.Undo_BeginBlock()
 local is_new_value, filename, sec, cmd, mode, resolution, val = reaper.get_action_context()
 local active_midi_editor = reaper.MIDIEditor_GetActive()
-local track = rsw.GetMIDIEditorActiveTakeTrack()
+local track = midi.GetActiveTakeTrack()
 local named_config_applied = false
 if track then
     local _, track_name = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME',
