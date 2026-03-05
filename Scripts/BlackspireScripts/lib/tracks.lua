@@ -355,7 +355,7 @@ end
 ---@param mute boolean true to mute track, false to unmute
 ---@param group? boolean optional, false to ignore track grouping
 function tm.SetTrackUIMute(track, mute, group)
-    reaper.SetTrackUIMute(track, utils.BoolInt(mute), group and 0 or 1)
+    reaper.SetTrackUIMute(track, utils.BoolInt(mute), utils.BoolIntInv(group))
 end
 
 ---Set Solo state on track
@@ -524,19 +524,18 @@ end
 ---@param exclusive boolean true to unmute all other tracks
 function tm.ToggleMuteOnTargetTrack(mouse, select, group, exclusive)
     local track = tm.GetTrackUnderMouseCursor()
-    if not mouse or (track and reaper.IsTrackSelected(track)) then -- mute all selected tracks
-        for i = 0, reaper.CountSelectedTracks(0) - 1 do
-            tm.ToggleMuteOnTrack(reaper.GetSelectedTrack(0, i), group,
-                i == 0 and exclusive)
-        end
-    elseif mouse then                                -- mute track under mouse
-        if select and track then
-            reaper.SetOnlyTrackSelected(track, true) -- select track under mouse
-        else
-            track = reaper.GetSelectedTrack(0, 0)    -- use selected track if no track under mouse
-        end
-        tm.ToggleMuteOnTrack(track, group, exclusive)
+
+    -- if select and track is unselected, select track exclusively
+    if select and track and not reaper.IsTrackSelected(track) then
+        reaper.SetOnlyTrackSelected(track) -- select track under mouse
     end
+
+    if not mouse or not track then
+        -- since the reaper.SetTrackUIMute function seems to respect track selection, it is sufficient to toggle mute on the first selected track event if more tracks are selected
+        track = reaper.GetSelectedTrack(0, 0) -- use selected track if no track under mouse
+    end
+
+    tm.ToggleMuteOnTrack(track, group, exclusive)
 end
 
 ---Toggle Mute on given track based on its current state and additional parameters
@@ -550,16 +549,16 @@ function tm.ToggleMuteOnTrack(track, group, exclusive)
     if not res then return end
 
     -- other_traks_muted can only be true if exclusive is true and any other track is muted
-    -- in such a case it is used further below to resolo target track after unsoloing all other tracks
-    local other_traks_muted = false
+    -- in such a case it is used further below to remute target track after unmuting all other tracks
+    local other_tracks_muted = false
     if exclusive then
-        other_traks_muted = tm.AnyTrackMuted(reaper.IsTrackSelected(track),
+        other_tracks_muted = tm.AnyTrackMuted(reaper.IsTrackSelected(track),
             select(2, tm.GetTrackId(track)))
-        if other_traks_muted then tm.UnmuteAllTracks() end
+        if other_tracks_muted then tm.UnmuteAllTracks() end
     end
 
     if muted then
-        tm.SetTrackUIMute(track, other_traks_muted, group)
+        tm.SetTrackUIMute(track, other_tracks_muted, group)
     else
         tm.SetTrackUIMute(track, true, group)
     end
@@ -573,19 +572,18 @@ end
 ---@param in_place boolean true to solo in-place (respect routing), false to solo not-in-place (ignore routing)
 function tm.ToggleSoloOnTargetTrack(mouse, select, group, exclusive, in_place)
     local track = tm.GetTrackUnderMouseCursor()
-    if not mouse or (track and reaper.IsTrackSelected(track)) then -- solo all selected tracks
-        for i = 0, reaper.CountSelectedTracks(0) - 1 do
-            tm.ToggleSoloOnTrack(reaper.GetSelectedTrack(0, i), group,
-                i == 0 and exclusive, in_place)
-        end
-    elseif mouse then                                -- solo track under mouse without changing selection
-        if select and track then
-            reaper.SetOnlyTrackSelected(track, true) -- select track under mouse
-        else
-            track = reaper.GetSelectedTrack(0, 0)    -- use selected track if no track under mouse
-        end
-        tm.ToggleSoloOnTrack(track, group, exclusive, in_place)
+
+    -- if select and track is unselected, select track exclusively
+    if select and track and not reaper.IsTrackSelected(track) then
+        reaper.SetOnlyTrackSelected(track) -- select track under mouse
     end
+
+    if not mouse or not track then
+        -- since the reaper.SetTrackUIMute function seems to respect track selection, it is sufficient to toggle mute on the first selected track event if more tracks are selected
+        track = reaper.GetSelectedTrack(0, 0) -- use selected track if no track under mouse
+    end
+
+    tm.ToggleSoloOnTrack(track, group, exclusive, in_place)
 end
 
 ---Toggle Solo on given track based on its current state and additional parameters

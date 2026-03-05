@@ -5,6 +5,8 @@
 local utils = {}
 function utils.BoolInt(bool) return bool and 1 or 0 end
 
+function utils.BoolIntInv(bool) return bool and 0 or 1 end
+
 function utils.GetExtStateSectionName(suffix)
     return 'blackspire' .. (suffix and ('_' .. suffix) or '')
 end
@@ -20,8 +22,5 @@ end
 function utils.FromDb(volume)
     return 10 ^ (volume / 20)
 end
-
-
-
 
 return utils
