@@ -7,6 +7,45 @@ tm.SWSNoteTrait = {
     FreezeToMono = "freeze_to_mono",
     DisabledOnFreeze = "disabled_on_freeze",
 }
+tm.TrackParam = {
+    NAME = "P_NAME",
+    MUTE = "B_MUTE",
+    PHASE = "B_PHASE",
+    VOLUME = "D_VOL",
+    PANNING = "D_PAN",
+    N_CHAN = "I_NCHAN",
+    SEND_N_CHAN = "C_MAINSEND_NCH",
+    SEND_OFS = "C_MAINSEND_OFFS",
+}
+tm.TrackParamStr = {
+    [tm.TrackParam.NAME] = true,
+}
+tm.RoutingParam = {
+    MUTE = "B_MUTE",
+    PHASE = "B_PHASE",
+    MONO = "B_MONO",
+    VOLUME = "D_VOL",
+    PANNING = "D_PAN",
+    PANLAW = "D_PANLAW",
+    SEND_MODE = "I_SENDMODE",
+    AUTO_MODE = "I_AUTOMODE",
+    SRC_CHAN = "I_SRCCHAN",
+    DST_CHAN = "I_DSTCHAN",
+    MIDI_FLAGS = "I_MIDIFLAGS",
+}
+
+tm.RoutingType = {
+    RECEIVE = -1,
+    SEND = 0,
+    HW = 1
+}
+
+tm.SendMode = {
+    POST_FADER = 0,
+    PRE_FX = 1,
+    POST_FX = 3,
+    PRE_FADER = 3,
+}
 
 ---Check if a trait is set on a track by checking for a keyword in the SWS track notes
 ---@param track MediaTrack track to check the trait on
@@ -28,7 +67,7 @@ function tm.UnmuteAllTracks() reaper.Main_OnCommand(40339, 0) end
 
 function tm.UnsoloAllTracks() reaper.Main_OnCommand(40340, 0) end
 
-function tm.SelectTrackUnterMouse() reaper.Main_OnCommand(41110, 0) end
+function tm.SelectTrackUnderMouse() reaper.Main_OnCommand(41110, 0) end
 
 function tm.UnselectAllTracks() reaper.Main_OnCommand(40297, 0) end
 
@@ -125,22 +164,52 @@ function tm.AnyTrackArmed(ignore_selected, ignore_track_id)
     return tm.AnyTrackPredicate(predicate, ignore_selected, ignore_track_id)
 end
 
----Select all tracks in the provided table
----@param tracks table tracks to select
----@param clear_prev_selection? any true to clear previous selection, false to keep previous selection
-function tm.SelectTracks(tracks, clear_prev_selection)
-    if clear_prev_selection then tm.UnselectAllTracks() end
-    for i = 1, #tracks do
-        if tracks[i] then reaper.SetTrackSelected(tracks[i], true) end
+---Get the volume of a track
+---@param track MediaTrack track to get volume from
+---@param param string parameter name to get value of
+---@param route_idx? number optional routing index to get volume from track routing, leave empty or pass value <0 to get track volume
+---@param route_type? integer routing type (see tm.RoutingType), defaults to 0 (SEND)
+---@return any
+function tm.GetParam(track, param, route_idx, route_type)
+    if route_idx == nil or route_idx < 0 then
+        if tm.TrackParamStr[param] then
+            return select(1, reaper.GetSetMediaTrackInfo_String(track, param))
+        else
+            return reaper.GetMediaTrackInfo_Value(track, param)
+        end
+    else
+        if route_type == nil then route_type = tm.RoutingType.SEND end
+        return reaper.GetTrackSendInfo_Value(track, route_type, route_idx, param)
+    end
+end
+
+---Set the parameter of a track or track send
+---@param track MediaTrack track to set volume on
+---@param param string parameter name to set value of
+---@param value any value to set the parameter to
+---@param route_idx? integer optional send index to set param from track send, leave empty or pass value <0 to set track param
+---@param route_type? integer routing type (see tm.RoutingType), default to 0 (SEND)
+function tm.SetParam(track, param, value, route_idx, route_type)
+    if route_idx == nil or route_idx < 0 then
+        if tm.TrackParamStr[param] then
+            reaper.GetSetMediaTrackInfo_String(track, param, value, true)
+        else
+            reaper.SetMediaTrackInfo_Value(track, param, value)
+        end
+    else
+        if route_type == nil then route_type = tm.RoutingType.SEND end
+        reaper.SetTrackSendInfo_Value(track, route_type, route_idx, param, value)
     end
 end
 
 ---Get the volume of a track
 ---@param track MediaTrack track to get volume from
 ---@param db? boolean optional true to return volume in dB, false to return linear volume
+---@param route_idx? number optional routing index to get volume from track routing, leave empty or pass value <0 to get track volume
+---@param route_type? integer routing type (see tm.RoutingType), defaults to 0 (SEND)
 ---@return number
-function tm.GetVolume(track, db)
-    local volume = reaper.GetMediaTrackInfo_Value(track, "D_VOL")
+function tm.GetVolume(track, db, route_idx, route_type)
+    local volume = tm.GetParam(track, tm.TrackParam.VOLUME, route_idx, route_type)
     if db then volume = utils.ToDb(volume) end
     return volume
 end
@@ -149,18 +218,42 @@ end
 ---@param track MediaTrack track to set volume on
 ---@param volume number volume to set
 ---@param db? boolean optional true if volume is in dB, false if volume is linear
-function tm.SetVolume(track, volume, db)
+---@param route_idx? number optional routing index to set volume from track routing, leave empty or pass value <0 to set track volume
+---@param route_type? integer routing type (see tm.RoutingType), defaults to 0 (SEND)
+function tm.SetVolume(track, volume, db, route_idx, route_type)
     if db then volume = utils.FromDb(volume) end
-    reaper.SetMediaTrackInfo_Value(track, "D_VOL", volume)
+    tm.SetParam(track, tm.TrackParam.VOLUME, volume, route_idx, route_type)
 end
 
--- @description holds wrapper functions for reaper API functions
--- @author Blackspire
--- @noindex
+---Get track under mouse cursor
+---@return MediaTrack track track under mouse cursor
 function tm.GetTrackUnderMouseCursor()
     local x, y = reaper.GetMousePosition()
     local track, info = reaper.GetTrackFromPoint(x, y)
     return track
+end
+
+---Get all tracks in the project that satisfy a predicate function
+---@param predicate function(track: MediaTrack) function specifying the condition to check for each track
+---@return table tracks table of tracks that satisfy the predicate
+function tm.GetTracksPredicate(predicate)
+    local tracks = {}
+    for i = 0, reaper.CountTracks(0) - 1 do
+        local track = reaper.GetTrack(0, i)
+        if predicate(track) then
+            table.insert(tracks, track)
+        end
+    end
+    return tracks
+end
+
+---Get all top level tracks in the project (tracks that are not child tracks of a folder track)
+---@return table top_level_tracks table of top level tracks in the project
+function tm.GetTopLevelTracks()
+    local predicate = function(track)
+        return reaper.GetMediaTrackInfo_Value(track, "I_FOLDERDEPTH") >= 0 and reaper.GetParentTrack(track) == nil --  includes normal (0) and root folder (1) tracks
+    end
+    return tm.GetTracksPredicate(predicate)
 end
 
 ---Get all selected tracks excluding tracks in the exclude_tracks table
@@ -247,6 +340,16 @@ function tm.GetTrackId(track)
     end
 end
 
+---Select all tracks in the provided table
+---@param tracks table tracks to select
+---@param clear_prev_selection? any true to clear previous selection, false to keep previous selection
+function tm.SelectTracks(tracks, clear_prev_selection)
+    if clear_prev_selection then tm.UnselectAllTracks() end
+    for i = 1, #tracks do
+        if tracks[i] then reaper.SetTrackSelected(tracks[i], true) end
+    end
+end
+
 ---Set Mute state on track
 ---@param track MediaTrack track to set mute state on
 ---@param mute boolean true to mute track, false to unmute
@@ -270,6 +373,119 @@ function tm.SetTrackUISolo(track, solo, in_place, group)
         end
     end
     reaper.SetTrackUISolo(track, i_solo, group and 0 or 1)
+end
+
+---Create a new track in the project at the specified index with optional default envelopes and FX
+---@param name? string optional name to set on the created track
+---@param params? table optional table of track parameters to set on the created track, where keys are parameter names (see tm.TrackParam and tm.TrackParamStr) and values are parameter values.
+---@param proj ? ReaProject|nil|0 project to create track in, pass nil or 0 for current project
+---@param idx ? integer optional zero-based track index to insert track at, pass negative or nil to insert at end of track list
+---@param default_env_fx ? boolean  TRUE for default envelopes/FX
+---@return MediaTrack created track
+function tm.CreateTrack(name, params, proj, idx, default_env_fx)
+    if proj == nil or proj <= 0 then
+        proj = 0 -- current project
+    end
+    if idx == nil or idx < 0 then
+        idx = reaper.CountTracks(proj)
+    end
+    reaper.InsertTrackInProject(proj, idx, default_env_fx and 1 or 0)
+    track = reaper.GetTrack(proj, idx)
+    if name then tm.SetParam(track, tm.TrackParam.NAME, name) end
+    if params then
+        for param, value in pairs(params) do
+            tm.SetParam(track, param, value)
+        end
+    end
+    return track
+end
+
+---Delete all track routings of the specified type
+---@param track MediaTrack track to delete sends from
+---@param type integer routing type (see tm.RoutingType)
+function tm.DeleteAllTrackRoutings(track, type)
+    local num_sends = reaper.GetTrackNumSends(track, type)
+    for i = num_sends - 1, 0, -1 do
+        reaper.RemoveTrackSend(track, type, i)
+    end
+end
+
+---Create a send from one track to another
+---@param src_track MediaTrack track to create send from
+---@param dst_track? MediaTrack track to create send to (pass nil to create hardware send)
+---@param params? table optional table of send parameters to set on the created send, where keys are parameter names (see tm.SendParam) and values are parameter values
+---@return integer send_id index of the created send, or -1 if send creation failed
+function tm.CreateTrackRouting(src_track, dst_track, params)
+    send_id = reaper.CreateTrackSend(src_track, dst_track)
+
+    for param, value in pairs(params or {}) do
+        tm.SetParam(src_track, param, value, send_id)
+    end
+
+    return send_id
+end
+
+function tm.ConvertRoutingChannelCount(value, blk_to_rea)
+    if blk_to_rea then
+        if value == 1 then
+            return 1               -- mono
+        elseif value == nil or value <= 0 or value == 2 then
+            return 0               -- stereo (default)
+        elseif value % 2 == 0 then
+            return value / 2       -- even multi channel
+        else
+            return (value - 1) / 2 --uneven multi channel is rounded down to even multi channel
+        end
+    else
+        if value == nil or value <= 0 then
+            return 2         -- stereo (default)
+        elseif value == 1 then
+            return 1         -- mono
+        else
+            return value * 2 -- even multi channel
+        end
+    end
+end
+
+---Get the send channel offsets and counts of a track routing
+---@param track MediaTrack track to get routing channels from
+---@param route_idx integer send index to get channel info from
+---@param type integer routing type (see tm.RoutingType)
+---@return integer src_chan_ofs zero-based offset of the first channel sent from the track
+---@return integer dst_chan_ofs zero-based offset of the first hardware output channel sent to
+---@return integer src_chan_n number of channels sent from the track
+---@return integer dst_chan_n number of hardware output channels sent to. currently only supports 1 or 2 channels
+function tm.GetRoutingChannels(track, route_idx, type)
+    local src_chan_ofs = reaper.GetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.SRC_CHAN) & 0x3FF
+    local dst_chan_ofs = reaper.GetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.DST_CHAN) & 0x3FF
+    local src_chan_n = (reaper.GetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.SRC_CHAN) >> 10) & 0x3F
+    local dst_chan_n = (reaper.GetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.DST_CHAN) >> 10) & 0x3F
+    return src_chan_ofs, dst_chan_ofs, tm.ConvertRoutingChannelCount(src_chan_n, false), tm.ConvertRoutingChannelCount(dst_chan_n, false)
+end
+
+---Set the send channels of a track send based on the provided source and destination channel offsets and counts
+---@param track MediaTrack track to create send from
+---@param route_idx integer send index to set channels on
+---@param type integer routing type (see tm.RoutingType)
+---@param src_chan_ofs? integer zero-based offset of the first channel to send from the track
+---@param dst_chan_ofs? integer zero-based offset of the first hardware output channel to send to
+---@param src_chan_n? integer number of channels to send from the track
+---@param dst_chan_n? integer number of hardware output channels to send to. currently only supports 1 or 2 channels
+---@return integer send_id index of the created send, or -1 if channel config was invalid
+function tm.SetRoutingChannels(track, route_idx, type, src_chan_ofs, dst_chan_ofs, src_chan_n, dst_chan_n)
+    local t_src_chan_ofs, t_dst_chan_ofs, t_src_chan_n, t_dst_chan_n = tm.GetRoutingChannels(track, route_idx, type)
+    src_chan_ofs = src_chan_ofs or t_src_chan_ofs
+    dst_chan_ofs = dst_chan_ofs or t_dst_chan_ofs
+    src_chan_n = tm.ConvertRoutingChannelCount(src_chan_n or t_src_chan_n, true)
+    dst_chan_n = tm.ConvertRoutingChannelCount(dst_chan_n or t_dst_chan_n, true)
+
+    n_chan_shift = 0x400 --1024
+    src_chan_ofs = (src_chan_n << n_chan_shift) + src_chan_ofs
+    dst_chan_ofs = (dst_chan_n << n_chan_shift) + dst_chan_ofs
+
+    reaper.SetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.SRC_CHAN, src_chan_ofs)
+    reaper.SetTrackSendInfo_Value(track, type, route_idx, tm.RoutingParam.DST_CHAN, dst_chan_ofs)
+    return 0
 end
 
 ---Get the current record arm, mode and monitor states of a track. Check https://www.reaper.fm/sdk/reascript/reascripthelp.html#GetMediaTrackInfo_Value for infos on the values
