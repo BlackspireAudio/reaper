@@ -151,8 +151,8 @@ function tm.AnyTrackSoloed(ignore_selected, ignore_track_id)
 end
 
 ---Loops over all tracks and returns true if any track is armed (record mode "Record disable (input monitoring only)" is not considered armed)
----@param ignore_selected boolean default false, true to ignore selected tracks
----@param ignore_track_id integer default -2, track id of a single track to ignore (pass value < -1 to ignore no track)
+---@param ignore_selected? boolean default false, true to ignore selected tracks
+---@param ignore_track_id? integer default -2, track id of a single track to ignore (pass value < -1 to ignore no track)
 ---@return boolean true if any non-ignored track is armed
 function tm.AnyTrackArmed(ignore_selected, ignore_track_id)
     local ignore_selected = ignore_selected or false
